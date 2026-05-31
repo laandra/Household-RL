@@ -212,6 +212,30 @@ class HouseholdEnvironment(gym.Env):
             raise ValueError(f"Unsupported action: {action}")
         return a
 
+    def action_masks(self):
+        """Return a boolean action mask for MaskablePPO.
+
+        The original environment can technically execute every action, but some are
+        effectively degenerate when the battery is full/empty or when no excess solar
+        is available. Exposing these simple feasibility constraints gives
+        MaskablePPO a valid mask interface without changing the base transition logic.
+        """
+        s = self._get_state_object(self._current_step, self._battery, self._cumulative_payment)
+        excess_solar = PaneliOdvec(s.Generiranje, s.Poraba)
+        can_charge = s.Baterija < (self.bat_kapaciteta - 1e-8)
+        can_discharge = s.Baterija > 1e-8
+
+        return np.array(
+            [
+                can_charge,
+                can_charge and (excess_solar > 1e-8),
+                can_discharge,
+                can_discharge,
+                True,
+            ],
+            dtype=bool,
+        )
+
     def _build_observation(self, idx, baterija_norm):
         if self.observation_mode == "compact":
             return np.array(

@@ -4,6 +4,14 @@ import pandas as pd
 import numpy as np
 from enum import Enum
 
+try:
+    import auto_diagnostics
+
+    auto_diagnostics.enable_auto_diagnostics()
+except Exception:
+    # Diagnostics are best-effort and must never break simulation code.
+    pass
+
 ### Helper Functions
 def BatMaxPraTrenutno(s, BatUcinkovitost, BatMaxPraznjenje):
     """Vrne maksimalno energijo ki jo lahko baterija odda v tem koraku"""
