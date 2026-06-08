@@ -1,0 +1,451 @@
+Fault handler: run_diagnostics\python_fault.log
+Trial 6 pruned at episode 9
+Trial 6 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 8 pruned at episode 23
+Trial 8 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 9 pruned at episode 6
+Trial 9 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 10 pruned at episode 13
+Trial 10 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 12 pruned at episode 15
+Trial 12 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 13 pruned at episode 6
+Trial 13 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 15 pruned at episode 6
+Trial 15 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 16 pruned at episode 6
+Trial 16 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 19 pruned at episode 12
+Trial 19 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 21 pruned at episode 6
+Trial 21 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 22 pruned at episode 6
+Trial 22 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 24 pruned at episode 7
+Trial 24 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 25 pruned at episode 6
+Trial 25 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 26 pruned at episode 11
+Trial 26 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 27 pruned at episode 6
+Trial 27 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 28 pruned at episode 7
+Trial 28 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 29 pruned at episode 6
+Trial 29 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 30 pruned at episode 6
+Trial 30 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 31 pruned at episode 6
+Trial 31 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 35 pruned at episode 6
+Trial 35 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 36 pruned at episode 6
+Trial 36 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 37 pruned at episode 6
+Trial 37 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 38 pruned at episode 6
+Trial 38 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 39 pruned at episode 6
+Trial 39 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 40 pruned at episode 6
+Trial 40 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 41 pruned at episode 6
+Trial 41 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 42 pruned at episode 6
+Trial 42 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 43 pruned at episode 6
+Trial 43 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 44 pruned at episode 6
+Trial 44 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 45 pruned at episode 6
+Trial 45 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 47 pruned at episode 6
+Trial 47 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 48 pruned at episode 6
+Trial 48 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 49 pruned at episode 7
+Trial 49 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 50 pruned at episode 6
+Trial 50 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 52 pruned at episode 6
+Trial 52 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 53 pruned at episode 6
+Trial 53 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 54 pruned at episode 6
+Trial 54 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 55 pruned at episode 9
+Trial 55 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 56 pruned at episode 6
+Trial 56 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 57 pruned at episode 6
+Trial 57 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 58 pruned at episode 6
+Trial 58 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 59 pruned at episode 6
+Trial 59 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 60 pruned at episode 6
+Trial 60 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 61 pruned at episode 11
+Trial 61 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 62 pruned at episode 6
+Trial 62 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 63 pruned at episode 18
+Trial 63 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 64 pruned at episode 6
+Trial 64 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 65 pruned at episode 7
+Trial 65 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 67 pruned at episode 6
+Trial 67 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 68 pruned at episode 6
+Trial 68 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 69 pruned at episode 6
+Trial 69 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 70 pruned at episode 6
+Trial 70 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 71 pruned at episode 6
+Trial 71 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 72 pruned at episode 6
+Trial 72 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 73 pruned at episode 7
+Trial 73 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 74 pruned at episode 6
+Trial 74 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 75 pruned at episode 6
+Trial 75 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 78 pruned at episode 6
+Trial 78 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 79 pruned at episode 8
+Trial 79 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 80 pruned at episode 6
+Trial 80 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 81 pruned at episode 6
+Trial 81 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 82 pruned at episode 8
+Trial 82 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 83 pruned at episode 6
+Trial 83 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 85 pruned at episode 6
+Trial 85 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 86 pruned at episode 6
+Trial 86 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 87 pruned at episode 6
+Trial 87 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 89 pruned at episode 6
+Trial 89 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 90 pruned at episode 25
+Trial 90 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 91 pruned at episode 8
+Trial 91 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 92 pruned at episode 8
+Trial 92 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 93 pruned at episode 8
+Trial 93 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 94 pruned at episode 25
+Trial 94 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 96 pruned at episode 6
+Trial 96 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 97 pruned at episode 6
+Trial 97 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned
+Trial 98 pruned at episode 6
+Trial 98 failed: TrialPruned()
+Traceback (most recent call last):
+  File "C:\Users\Andraz\AppData\Local\Temp\ipykernel_23868\1434346038.py", line 109, in objective
+    raise optuna.TrialPruned()
+optuna.exceptions.TrialPruned

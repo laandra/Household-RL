@@ -1,0 +1,14 @@
+2026-05-31 21:46:29,604 INFO Auto diagnostics enabled
+2026-05-31 21:46:29,604 INFO python=C:\Users\Andraz\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.7_qbz5n2kfra8p0\python.exe
+2026-05-31 21:46:29,604 INFO version=3.7.9 (tags/v3.7.9:13c94747c7, Aug 17 2020, 16:30:00) [MSC v.1900 64 bit (AMD64)]
+2026-05-31 21:46:29,604 INFO cwd=F:\Fakulteta\Doktorat\Jupyter notebook\Household RL
+2026-05-31 21:46:29,604 INFO argv=['test_btr_integration.py']
+2026-05-31 21:46:29,604 INFO fault_log=run_diagnostics\auto_global\python_fault_auto.log
+2026-05-31 21:46:29,610 CRITICAL Unhandled exception
+Traceback (most recent call last):
+  File "test_btr_integration.py", line 11, in <module>
+    from btr_config_builder import get_btr_algorithm_config
+  File "F:\Fakulteta\Doktorat\Jupyter notebook\Household RL\btr_config_builder.py", line 242, in <module>
+    trial: optuna.Trial,
+AttributeError: 'NoneType' object has no attribute 'Trial'
+2026-05-31 21:46:29,612 INFO Process exiting normally

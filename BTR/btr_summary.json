@@ -1,0 +1,16 @@
+{
+  "IQN": {
+    "reward_mean": 0.0,
+    "reward_std": 0.0,
+    "price_mean": 0.0,
+    "price_std": 0.0,
+    "error": "Training failed"
+  },
+  "C51": {
+    "reward_mean": 0.0,
+    "reward_std": 0.0,
+    "price_mean": 0.0,
+    "price_std": 0.0,
+    "error": "Training failed"
+  }
+}

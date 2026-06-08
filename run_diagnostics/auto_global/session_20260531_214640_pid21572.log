@@ -1,0 +1,7 @@
+2026-05-31 21:46:40,613 INFO Auto diagnostics enabled
+2026-05-31 21:46:40,613 INFO python=C:\Users\Andraz\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.7_qbz5n2kfra8p0\python.exe
+2026-05-31 21:46:40,613 INFO version=3.7.9 (tags/v3.7.9:13c94747c7, Aug 17 2020, 16:30:00) [MSC v.1900 64 bit (AMD64)]
+2026-05-31 21:46:40,613 INFO cwd=F:\Fakulteta\Doktorat\Jupyter notebook\Household RL
+2026-05-31 21:46:40,613 INFO argv=['test_btr_integration.py']
+2026-05-31 21:46:40,613 INFO fault_log=run_diagnostics\auto_global\python_fault_auto.log
+2026-05-31 21:46:40,919 INFO Process exiting normally

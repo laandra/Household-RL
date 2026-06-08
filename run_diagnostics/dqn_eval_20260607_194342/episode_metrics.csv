@@ -1,0 +1,2 @@
+timestamp,scope,run_name,trial,episode,episodes_total,steps,episode_reward,total_reward,avg_reward,epsilon,memory_rss_mb,done,status,error,checkpoint_file
+2026-06-07T19:43:45.800706,Learning_DQN,dqn_eval_20260607_194342,,1,1,17534,-30.174122596101657,-30.174122596101657,-30.174122596101657,0.0,2993.61,1,ok,,DQN\dqn_model
