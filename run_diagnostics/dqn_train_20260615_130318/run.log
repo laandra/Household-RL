@@ -1,0 +1,3 @@
+Fault handler: run_diagnostics/python_fault.log
+Checkpoint file: DQN/dqn_model
+Reset requested: removed old DQN checkpoint.

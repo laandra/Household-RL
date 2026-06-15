@@ -1,0 +1,6 @@
+2026-06-15 13:00:14,010 INFO Auto diagnostics enabled
+2026-06-15 13:00:14,010 INFO python=/usr/local/bin/python3
+2026-06-15 13:00:14,010 INFO version=3.14.3 (v3.14.3:323c59a5e34, Feb  3 2026, 11:41:37) [Clang 16.0.0 (clang-1600.0.26.6)]
+2026-06-15 13:00:14,010 INFO cwd=/Users/tomaz/Documents/Andraz/Household-RL
+2026-06-15 13:00:14,010 INFO argv=['/Users/tomaz/Library/Python/3.14/lib/python/site-packages/ipykernel_launcher.py', '--f=/Users/tomaz/Library/Jupyter/runtime/kernel-v3b4dbbff25e03dfb1aafd5541a8ad319252794c1e.json']
+2026-06-15 13:00:14,010 INFO fault_log=run_diagnostics/auto_global/python_fault_auto.log
