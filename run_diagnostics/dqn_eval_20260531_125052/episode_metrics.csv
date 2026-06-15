@@ -1,1 +1,0 @@
-timestamp,scope,run_name,trial,episode,episodes_total,steps,episode_reward,total_reward,avg_reward,epsilon,memory_rss_mb,done,status,error,checkpoint_file

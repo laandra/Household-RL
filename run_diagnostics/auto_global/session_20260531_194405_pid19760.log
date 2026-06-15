@@ -1,6 +1,0 @@
-2026-05-31 19:44:05,428 INFO Auto diagnostics enabled
-2026-05-31 19:44:05,429 INFO python=f:\Programi\Anaconda\python.exe
-2026-05-31 19:44:05,429 INFO version=3.12.3 | packaged by conda-forge | (main, Apr 15 2024, 18:20:11) [MSC v.1938 64 bit (AMD64)]
-2026-05-31 19:44:05,429 INFO cwd=f:\Fakulteta\Doktorat\Jupyter notebook\Household RL
-2026-05-31 19:44:05,429 INFO argv=['C:\\Users\\Andraz\\AppData\\Roaming\\Python\\Python312\\site-packages\\ipykernel_launcher.py', '--f=c:\\Users\\Andraz\\AppData\\Roaming\\jupyter\\runtime\\kernel-v3c32f0389743d3bddf1b905af6b945abe58b6b7de.json']
-2026-05-31 19:44:05,429 INFO fault_log=run_diagnostics\auto_global\python_fault_auto.log
