@@ -1,0 +1,2 @@
+algorithm,seed,reward_mean,reward_std_eval_checkpoints,reward_std,price_mean,price_std_eval_checkpoints,price_std,price_mean_eur_per_day,total_timesteps,n_eval_episodes,episode_length_steps,episode_days,korakov_na_dan,reset_mode,observation_mode,model_path
+IQN,0,-22.955620015352064,9.44647307805362,9.44647307805362,36.7289920245633,15.1143569248858,15.1143569248858,5.2469988606519,15000,5,672,7.0,96,sequential,compact,reconciliation_outputs/BTR_7day/models/IQN_seed0.pt

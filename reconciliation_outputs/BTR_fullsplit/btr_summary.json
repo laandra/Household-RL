@@ -1,0 +1,24 @@
+{
+  "IQN": {
+    "reward_mean": -301.2004101251361,
+    "reward_std": 0.0,
+    "reward_std_across_seeds": 0.0,
+    "price_mean": 481.92065620021157,
+    "price_std": 0.0,
+    "price_std_across_seeds": 0.0,
+    "price_mean_eur_per_day": 3.972214561279326,
+    "episode_length_steps": 11647,
+    "episode_days": 121.32291666666667,
+    "korakov_na_dan": 96,
+    "reset_mode": "sequential",
+    "observation_mode": "compact",
+    "n_eval_episodes": 5,
+    "total_timesteps": 15000,
+    "metric_semantics": {
+      "price_mean": "EUR total cumulative_payment over one evaluation episode",
+      "price_std": "across-seed std of price_mean",
+      "reward_std": "across-seed std of reward_mean"
+    },
+    "n_seeds": 1
+  }
+}

@@ -1,0 +1,5 @@
+horizon,family,algorithm,price_total_eur,price_std,price_std_across_seeds,episode_length_steps,episode_days,reset_mode,n_seeds,n_eval_episodes
+7day,SB3,DQN,34.40916809282561,0.0,0.0,672,7.0,sequential,1,5
+7day,BTR,IQN,36.7289920245633,0.0,0.0,672,7.0,sequential,1,5
+fullsplit,SB3,DQN,479.101530065179,0.0,0.0,11647,121.32291666666667,sequential,1,5
+fullsplit,BTR,IQN,481.92065620021157,0.0,0.0,11647,121.32291666666667,sequential,1,5

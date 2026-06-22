@@ -22,6 +22,33 @@ except ImportError:
 from sb3_config_builder import get_algorithm_config
 
 
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return int(default)
+
+
+def _extract_env_metadata(env) -> Dict[str, Any]:
+    """Extract comparable episode metadata from environment instances."""
+    episode_length_steps = _safe_int(getattr(env, "episode_length", 0), default=0)
+    korakov_na_dan = _safe_int(getattr(env, "korakov_na_dan", 0), default=0)
+    episode_days = (
+        float(episode_length_steps) / float(korakov_na_dan)
+        if episode_length_steps > 0 and korakov_na_dan > 0
+        else None
+    )
+
+    return {
+        "episode_length_steps": episode_length_steps,
+        "korakov_na_dan": korakov_na_dan,
+        "episode_days": episode_days,
+        "reset_mode": str(getattr(env, "reset_mode", "unknown")),
+        "observation_mode": str(getattr(env, "observation_mode", "unknown")),
+        "data_length_steps": _safe_int(getattr(env, "data_length", 0), default=0),
+    }
+
+
 class SB3Trainer:
     """Single-algorithm, multi-seed trainer for SB3 agents."""
 
@@ -307,7 +334,9 @@ def run_sb3_benchmark(
 
     # Storage for results
     all_results = {algo: {"rewards": [], "prices": []} for algo in algorithms}
+    all_metrics = []
     summary = {}
+    eval_meta = _extract_env_metadata(eval_env)
 
     print(f"\n{'='*60}")
     print(f"SB3 Benchmark: {len(algorithms)} algorithms × {n_seeds} seeds")
@@ -345,9 +374,34 @@ def run_sb3_benchmark(
                 algo_rewards.append(metrics["reward_mean"])
                 algo_prices.append(metrics["price_mean"])
 
+                price_mean_eur_per_day = (
+                    float(metrics["price_mean"]) / float(eval_meta["episode_days"])
+                    if eval_meta["episode_days"]
+                    else None
+                )
+
                 # Save best model per seed
                 seed_model_path = os.path.join(algo_dir, f"model_seed_{seed}")
                 trainer.save_model(seed_model_path)
+
+                all_metrics.append({
+                    "algorithm": algorithm,
+                    "seed": seed,
+                    "reward_mean": float(metrics["reward_mean"]),
+                    "reward_std_eval_checkpoints": float(metrics["reward_std"]),
+                    "reward_std": float(metrics["reward_std"]),
+                    "price_mean": float(metrics["price_mean"]),
+                    "price_std_eval_checkpoints": float(metrics["price_std"]),
+                    "price_std": float(metrics["price_std"]),
+                    "price_mean_eur_per_day": price_mean_eur_per_day,
+                    "total_timesteps": int(total_timesteps),
+                    "n_eval_episodes": int(n_eval_episodes),
+                    "episode_length_steps": int(eval_meta["episode_length_steps"]),
+                    "episode_days": eval_meta["episode_days"],
+                    "korakov_na_dan": int(eval_meta["korakov_na_dan"]),
+                    "reset_mode": eval_meta["reset_mode"],
+                    "observation_mode": eval_meta["observation_mode"],
+                })
 
                 print(
                     f"✓ R={metrics['reward_mean']:.2f}±{metrics['reward_std']:.2f} | "
@@ -358,11 +412,34 @@ def run_sb3_benchmark(
 
         # Aggregate results across seeds
         if algo_rewards:
+            price_mean_eur_per_day = (
+                float(np.mean(algo_prices)) / float(eval_meta["episode_days"])
+                if eval_meta["episode_days"]
+                else None
+            )
+            reward_std_across_seeds = float(np.std(algo_rewards))
+            price_std_across_seeds = float(np.std(algo_prices))
+
             summary[algorithm] = {
                 "reward_mean": float(np.mean(algo_rewards)),
-                "reward_std": float(np.std(algo_rewards)),
+                "reward_std": reward_std_across_seeds,
+                "reward_std_across_seeds": reward_std_across_seeds,
                 "price_mean": float(np.mean(algo_prices)),
-                "price_std": float(np.std(algo_prices)),
+                "price_std": price_std_across_seeds,
+                "price_std_across_seeds": price_std_across_seeds,
+                "price_mean_eur_per_day": price_mean_eur_per_day,
+                "episode_length_steps": int(eval_meta["episode_length_steps"]),
+                "episode_days": eval_meta["episode_days"],
+                "korakov_na_dan": int(eval_meta["korakov_na_dan"]),
+                "reset_mode": eval_meta["reset_mode"],
+                "observation_mode": eval_meta["observation_mode"],
+                "n_eval_episodes": int(n_eval_episodes),
+                "total_timesteps": int(total_timesteps),
+                "metric_semantics": {
+                    "price_mean": "EUR total cumulative_payment over one evaluation episode",
+                    "price_std": "across-seed std of price_mean",
+                    "reward_std": "across-seed std of reward_mean",
+                },
                 "n_seeds": len(algo_rewards),
             }
 
@@ -378,6 +455,9 @@ def run_sb3_benchmark(
             print(f"\n  ✗ No successful runs for {algorithm}")
 
     # Save summary to file
+    results_csv_path = os.path.join(output_dir, "sb3_results.csv")
+    pd.DataFrame(all_metrics).to_csv(results_csv_path, index=False)
+
     summary_path = os.path.join(output_dir, "benchmark_summary.json")
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)

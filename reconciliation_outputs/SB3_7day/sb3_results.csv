@@ -1,0 +1,2 @@
+algorithm,seed,reward_mean,reward_std_eval_checkpoints,reward_std,price_mean,price_std_eval_checkpoints,price_std,price_mean_eur_per_day,total_timesteps,n_eval_episodes,episode_length_steps,episode_days,korakov_na_dan,reset_mode,observation_mode
+DQN,11,-21.505730058016002,9.191017909485275,9.191017909485275,34.40916809282561,14.705628655176456,14.705628655176456,4.91559544183223,15000,5,672,7.0,96,sequential,sliding_window

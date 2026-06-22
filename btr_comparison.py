@@ -46,9 +46,33 @@ class BTRComparison:
         if os.path.exists(csv_path):
             self.sb3_results = pd.read_csv(csv_path)
             return self.sb3_results
-        else:
-            print(f"Warning: SB3 results not found at {csv_path}")
-            return None
+
+        # Backward-compatible fallback: older runs only saved benchmark_summary.json.
+        summary_path = os.path.join(self.sb3_results_dir, "benchmark_summary.json")
+        if os.path.exists(summary_path):
+            with open(summary_path, "r") as f:
+                summary = json.load(f)
+
+            rows = []
+            for algo, metrics in summary.items():
+                if not isinstance(metrics, dict):
+                    continue
+                rows.append({
+                    "algorithm": algo,
+                    "reward_mean": metrics.get("reward_mean", 0.0),
+                    "reward_std": metrics.get("reward_std", 0.0),
+                    "price_mean": metrics.get("price_mean", 0.0),
+                    "price_std": metrics.get("price_std", 0.0),
+                    "n_seeds": metrics.get("n_seeds", 0),
+                    "price_mean_eur_per_day": metrics.get("price_mean_eur_per_day", None),
+                })
+
+            if rows:
+                self.sb3_results = pd.DataFrame(rows)
+                return self.sb3_results
+
+        print(f"Warning: SB3 results not found at {csv_path} or {summary_path}")
+        return None
     
     def compare_within_btr(self) -> pd.DataFrame:
         """
@@ -67,14 +91,24 @@ class BTRComparison:
         comparison = []
         for algo in self.btr_results["algorithm"].unique():
             algo_data = self.btr_results[self.btr_results["algorithm"] == algo]
+
+            reward_std_across_seeds = algo_data["reward_mean"].std()
+            price_std_across_seeds = algo_data["price_mean"].std()
+
+            price_mean_eur_per_day = None
+            if "price_mean_eur_per_day" in algo_data.columns:
+                price_mean_eur_per_day = float(algo_data["price_mean_eur_per_day"].mean())
             
             comparison.append({
                 "algorithm": algo,
                 "n_seeds": len(algo_data),
                 "reward_mean": algo_data["reward_mean"].mean(),
-                "reward_std": algo_data["reward_mean"].std(),
+                "reward_std": reward_std_across_seeds,
+                "reward_std_across_seeds": reward_std_across_seeds,
                 "price_mean": algo_data["price_mean"].mean(),
-                "price_std": algo_data["price_mean"].std(),
+                "price_std": price_std_across_seeds,
+                "price_std_across_seeds": price_std_across_seeds,
+                "price_mean_eur_per_day": price_mean_eur_per_day,
                 "best_price": algo_data["price_mean"].min(),
                 "worst_price": algo_data["price_mean"].max(),
                 "price_range": algo_data["price_mean"].max() - algo_data["price_mean"].min(),
@@ -103,13 +137,24 @@ class BTRComparison:
         sb3_comp = []
         for algo in sb3_data["algorithm"].unique():
             algo_data = sb3_data[sb3_data["algorithm"] == algo]
+
+            reward_std_across_seeds = algo_data["reward_mean"].std()
+            price_std_across_seeds = algo_data["price_mean"].std()
+
+            price_mean_eur_per_day = None
+            if "price_mean_eur_per_day" in algo_data.columns:
+                price_mean_eur_per_day = float(algo_data["price_mean_eur_per_day"].mean())
+
             sb3_comp.append({
                 "algorithm": f"SB3_{algo}",
                 "n_seeds": len(algo_data),
                 "reward_mean": algo_data["reward_mean"].mean(),
-                "reward_std": algo_data["reward_mean"].std(),
+                "reward_std": reward_std_across_seeds,
+                "reward_std_across_seeds": reward_std_across_seeds,
                 "price_mean": algo_data["price_mean"].mean(),
-                "price_std": algo_data["price_mean"].std(),
+                "price_std": price_std_across_seeds,
+                "price_std_across_seeds": price_std_across_seeds,
+                "price_mean_eur_per_day": price_mean_eur_per_day,
                 "best_price": algo_data["price_mean"].min(),
                 "worst_price": algo_data["price_mean"].max(),
                 "price_range": algo_data["price_mean"].max() - algo_data["price_mean"].min(),
