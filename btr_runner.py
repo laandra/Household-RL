@@ -54,6 +54,66 @@ def _extract_env_metadata(env) -> Dict[str, Any]:
     }
 
 
+def _run_deterministic_horizon_eval_btr(agent, env_orig, device: str = "cpu") -> Dict[str, Any]:
+    """Run one deterministic rollout over full dataset and extract full + first-7-day totals."""
+    prev_reset_mode = getattr(env_orig, "reset_mode", None)
+    prev_episode_length = getattr(env_orig, "episode_length", None)
+
+    data_length = _safe_int(getattr(env_orig, "data_length", 0), default=0)
+    korakov_na_dan = _safe_int(getattr(env_orig, "korakov_na_dan", 0), default=0)
+    seven_day_steps = 7 * korakov_na_dan if korakov_na_dan > 0 else 0
+
+    total_reward = 0.0
+    total_price = 0.0
+    total_steps = 0
+    reward_7day = None
+    price_7day = None
+
+    try:
+        if hasattr(env_orig, "reset_mode"):
+            env_orig.reset_mode = "deterministic"
+        if data_length > 0 and hasattr(env_orig, "episode_length"):
+            env_orig.episode_length = data_length
+
+        eval_env = BTREnvironmentAdapter(env_orig, device=device, use_torch=False)
+        obs, _ = eval_env.reset()
+        done = False
+
+        while not done:
+            action = agent.select_action(obs, training=False)
+            obs, reward, terminated, truncated, info = eval_env.step(action)
+            done = terminated or truncated
+
+            total_reward += float(reward)
+            total_steps += 1
+            if "cumulative_payment" in info:
+                total_price = float(info["cumulative_payment"])
+
+            if reward_7day is None and seven_day_steps > 0 and total_steps >= seven_day_steps:
+                reward_7day = float(total_reward)
+                price_7day = float(total_price)
+
+        if reward_7day is None:
+            reward_7day = float(total_reward)
+            price_7day = float(total_price)
+
+        return {
+            "total_reward": float(total_reward),
+            "total_price": float(total_price),
+            "total_steps": int(total_steps),
+            "reward_7day": float(reward_7day),
+            "price_7day": float(price_7day),
+            "seven_day_steps": int(seven_day_steps),
+            "seven_day_truncated": bool(seven_day_steps <= 0 or total_steps < seven_day_steps),
+            "korakov_na_dan": int(korakov_na_dan),
+        }
+    finally:
+        if prev_reset_mode is not None and hasattr(env_orig, "reset_mode"):
+            env_orig.reset_mode = prev_reset_mode
+        if prev_episode_length is not None and hasattr(env_orig, "episode_length"):
+            env_orig.episode_length = prev_episode_length
+
+
 class BTRTrainer:
     """Single-algorithm, multi-seed trainer for BTR agents."""
 
@@ -346,6 +406,7 @@ def run_btr_benchmark(
     total_timesteps: int = 60000,
     n_seeds: int = 3,
     n_eval_episodes: int = 10,
+    eval_freq: int = 5000,
     output_dir: str = "BTR",
     device: str = "cpu",
     use_optuna: bool = False,
@@ -363,6 +424,7 @@ def run_btr_benchmark(
         total_timesteps: Total training timesteps per seed
         n_seeds: Number of seeds to train
         n_eval_episodes: Episodes per evaluation
+        eval_freq: Evaluate every N timesteps during training
         output_dir: Directory to save results and models
         device: PyTorch device ("cpu" or "cuda")
         use_optuna: Enable Optuna hyperparameter optimization
@@ -383,10 +445,13 @@ def run_btr_benchmark(
     results = {}
     all_metrics = []
     eval_meta = _extract_env_metadata(eval_env)
+    test_meta = _extract_env_metadata(test_env if test_env is not None else eval_env)
     
     for algo in algorithms:
         algo_rewards = []
         algo_prices = []
+        algo_rewards_7day = []
+        algo_prices_7day = []
         algo_models = []
         
         for seed in range(n_seeds):
@@ -401,6 +466,7 @@ def run_btr_benchmark(
                 eval_env=eval_env,
                 total_timesteps=total_timesteps,
                 n_eval_episodes=n_eval_episodes,
+                eval_freq=eval_freq,
                 seed=seed,
                 device=device,
                 verbose=verbose,
@@ -409,12 +475,27 @@ def run_btr_benchmark(
             metrics = trainer.train(use_optuna=use_optuna, n_optuna_trials=n_optuna_trials)
             
             if metrics["success"]:
-                algo_rewards.append(metrics["reward_mean"])
-                algo_prices.append(metrics["price_mean"])
+                final_eval_env = test_env if test_env is not None else eval_env
+                final_horizon = _run_deterministic_horizon_eval_btr(
+                    trainer.agent,
+                    final_eval_env,
+                    device=device,
+                )
 
+                algo_rewards.append(float(final_horizon["total_reward"]))
+                algo_prices.append(float(final_horizon["total_price"]))
+                algo_rewards_7day.append(float(final_horizon["reward_7day"]))
+                algo_prices_7day.append(float(final_horizon["price_7day"]))
+
+                data_steps = _safe_int(test_meta.get("data_length_steps"), default=0)
+                data_days = (
+                    float(data_steps) / float(final_horizon["korakov_na_dan"])
+                    if data_steps > 0 and final_horizon["korakov_na_dan"] > 0
+                    else None
+                )
                 price_mean_eur_per_day = (
-                    float(metrics["price_mean"]) / float(eval_meta["episode_days"])
-                    if eval_meta["episode_days"]
+                    float(final_horizon["total_price"]) / float(data_days)
+                    if data_days
                     else None
                 )
                 
@@ -427,15 +508,26 @@ def run_btr_benchmark(
                 all_metrics.append({
                     "algorithm": algo,
                     "seed": seed,
-                    "reward_mean": metrics["reward_mean"],
-                    "reward_std_eval_checkpoints": metrics["reward_std"],
-                    "reward_std": metrics["reward_std"],
-                    "price_mean": metrics["price_mean"],
-                    "price_std_eval_checkpoints": metrics["price_std"],
-                    "price_std": metrics["price_std"],
+                    "reward_mean": float(final_horizon["total_reward"]),
+                    "reward_7day": float(final_horizon["reward_7day"]),
+                    "reward_mean_eval_checkpoints": float(metrics["reward_mean"]),
+                    "reward_std_eval_checkpoints": float(metrics["reward_std"]),
+                    "reward_std": float(metrics["reward_std"]),
+                    "price_mean": float(final_horizon["total_price"]),
+                    "price_7day": float(final_horizon["price_7day"]),
+                    "price_mean_eval_checkpoints": float(metrics["price_mean"]),
+                    "price_std_eval_checkpoints": float(metrics["price_std"]),
+                    "price_std": float(metrics["price_std"]),
                     "price_mean_eur_per_day": price_mean_eur_per_day,
                     "total_timesteps": int(total_timesteps),
                     "n_eval_episodes": int(n_eval_episodes),
+                    "final_eval_steps": int(final_horizon["total_steps"]),
+                    "final_eval_data_length_steps": int(data_steps),
+                    "final_eval_days": data_days,
+                    "seven_day_steps": int(final_horizon["seven_day_steps"]),
+                    "seven_day_truncated": bool(final_horizon["seven_day_truncated"]),
+                    "final_eval_source": "test_env" if test_env is not None else "eval_env_fallback",
+                    "final_eval_semantics": "deterministic full-horizon rollout cumulative totals",
                     "episode_length_steps": int(eval_meta["episode_length_steps"]),
                     "episode_days": eval_meta["episode_days"],
                     "korakov_na_dan": int(eval_meta["korakov_na_dan"]),
@@ -447,9 +539,16 @@ def run_btr_benchmark(
         if algo_rewards:
             reward_std_across_seeds = float(np.std(algo_rewards))
             price_std_across_seeds = float(np.std(algo_prices))
+            reward_7day_mean = float(np.mean(algo_rewards_7day))
+            price_7day_mean = float(np.mean(algo_prices_7day))
+            summary_data_days = (
+                float(test_meta["data_length_steps"]) / float(test_meta["korakov_na_dan"])
+                if test_meta["data_length_steps"] > 0 and test_meta["korakov_na_dan"] > 0
+                else None
+            )
             price_mean_eur_per_day = (
-                float(np.mean(algo_prices)) / float(eval_meta["episode_days"])
-                if eval_meta["episode_days"]
+                float(np.mean(algo_prices)) / float(summary_data_days)
+                if summary_data_days
                 else None
             )
 
@@ -457,9 +556,11 @@ def run_btr_benchmark(
                 "reward_mean": float(np.mean(algo_rewards)),
                 "reward_std": reward_std_across_seeds,
                 "reward_std_across_seeds": reward_std_across_seeds,
+                "reward_7day": reward_7day_mean,
                 "price_mean": float(np.mean(algo_prices)),
                 "price_std": price_std_across_seeds,
                 "price_std_across_seeds": price_std_across_seeds,
+                "price_7day": price_7day_mean,
                 "price_mean_eur_per_day": price_mean_eur_per_day,
                 "episode_length_steps": int(eval_meta["episode_length_steps"]),
                 "episode_days": eval_meta["episode_days"],
@@ -469,9 +570,10 @@ def run_btr_benchmark(
                 "n_eval_episodes": int(n_eval_episodes),
                 "total_timesteps": int(total_timesteps),
                 "metric_semantics": {
-                    "price_mean": "EUR total cumulative_payment over one evaluation episode",
-                    "price_std": "across-seed std of price_mean",
-                    "reward_std": "across-seed std of reward_mean",
+                    "price_mean": "EUR total cumulative_payment over deterministic full-horizon test rollout",
+                    "price_7day": "EUR cumulative_payment over first 7 days from deterministic test start",
+                    "price_std": "across-seed std of deterministic full-horizon price_mean",
+                    "reward_std": "across-seed std of deterministic full-horizon reward_mean",
                 },
                 "n_seeds": n_seeds,
             }
@@ -501,6 +603,7 @@ def run_btr_benchmark(
             print(f"\n{algo}:")
             print(f"  Reward: {metrics['reward_mean']:.2f} ± {metrics['reward_std']:.2f}")
             print(f"  Price:  {metrics['price_mean']:.2f} ± {metrics['price_std']:.2f}")
+            print(f"  Quick 7D Price: {metrics['price_7day']:.2f}")
         print(f"\nResults saved to: {output_dir}")
     
     return results

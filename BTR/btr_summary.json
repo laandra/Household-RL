@@ -1,16 +1,52 @@
 {
   "IQN": {
-    "reward_mean": -150.70556970219255,
-    "reward_std": 0.5274512944838763,
-    "price_mean": 482.22999255872315,
-    "price_std": 1.614750242095287,
+    "reward_mean": -125.7904838010257,
+    "reward_std": 0.5324194724787973,
+    "reward_std_across_seeds": 0.5324194724787973,
+    "reward_7day": -0.01281513159233838,
+    "price_mean": 402.0531117437797,
+    "price_std": 0.35617661979602566,
+    "price_std_across_seeds": 0.35617661979602566,
+    "price_7day": -0.43542799840643137,
+    "price_mean_eur_per_day": 3.313624547338844,
+    "episode_length_steps": 11647,
+    "episode_days": 121.32291666666667,
+    "korakov_na_dan": 96,
+    "reset_mode": "deterministic",
+    "observation_mode": "compact",
+    "n_eval_episodes": 10,
+    "total_timesteps": 10000,
+    "metric_semantics": {
+      "price_mean": "EUR total cumulative_payment over deterministic full-horizon test rollout",
+      "price_7day": "EUR cumulative_payment over first 7 days from deterministic test start",
+      "price_std": "across-seed std of deterministic full-horizon price_mean",
+      "reward_std": "across-seed std of deterministic full-horizon reward_mean"
+    },
     "n_seeds": 3
   },
   "C51": {
-    "reward_mean": -144.96112668819785,
-    "reward_std": 6.6550419745772125,
-    "price_mean": 479.9534071839085,
-    "price_std": 1.7190932378417603,
+    "reward_mean": -125.60619231274391,
+    "reward_std": 0.4732060010647464,
+    "reward_std_across_seeds": 0.4732060010647464,
+    "reward_7day": 0.17147635668946282,
+    "price_mean": 401.90524913010523,
+    "price_std": 0.305047379686632,
+    "price_std_across_seeds": 0.305047379686632,
+    "price_7day": -0.5832906120808973,
+    "price_mean_eur_per_day": 3.3124058994239443,
+    "episode_length_steps": 11647,
+    "episode_days": 121.32291666666667,
+    "korakov_na_dan": 96,
+    "reset_mode": "deterministic",
+    "observation_mode": "compact",
+    "n_eval_episodes": 10,
+    "total_timesteps": 10000,
+    "metric_semantics": {
+      "price_mean": "EUR total cumulative_payment over deterministic full-horizon test rollout",
+      "price_7day": "EUR cumulative_payment over first 7 days from deterministic test start",
+      "price_std": "across-seed std of deterministic full-horizon price_mean",
+      "reward_std": "across-seed std of deterministic full-horizon reward_mean"
+    },
     "n_seeds": 3
   }
 }

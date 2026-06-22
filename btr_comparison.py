@@ -12,6 +12,32 @@ from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
 
 
+def _stringify_markdown_value(value: Any) -> str:
+    """Convert scalar values into Markdown-safe strings."""
+    if pd.isna(value):
+        return ""
+    if isinstance(value, (float, np.floating)):
+        return f"{value:.4f}".rstrip("0").rstrip(".")
+    return str(value)
+
+
+def _dataframe_to_markdown(df: pd.DataFrame, index: bool = False) -> str:
+    """Render a DataFrame as Markdown without requiring optional tabulate."""
+    try:
+        return df.to_markdown(index=index)
+    except ImportError:
+        render_df = df if index else df.reset_index(drop=True)
+        columns = list(render_df.columns)
+        rows = [
+            [_stringify_markdown_value(value).replace("|", "\\|") for value in row]
+            for row in render_df.itertuples(index=False, name=None)
+        ]
+        header = "| " + " | ".join(map(str, columns)) + " |"
+        separator = "| " + " | ".join(["---"] * len(columns)) + " |"
+        body = ["| " + " | ".join(row) + " |" for row in rows]
+        return "\n".join([header, separator, *body])
+
+
 class BTRComparison:
     """Compare BTR algorithms and results with other methods."""
     
@@ -109,6 +135,7 @@ class BTRComparison:
                 "price_std": price_std_across_seeds,
                 "price_std_across_seeds": price_std_across_seeds,
                 "price_mean_eur_per_day": price_mean_eur_per_day,
+                "price_7day": float(algo_data["price_7day"].mean()) if "price_7day" in algo_data.columns else None,
                 "best_price": algo_data["price_mean"].min(),
                 "worst_price": algo_data["price_mean"].max(),
                 "price_range": algo_data["price_mean"].max() - algo_data["price_mean"].min(),
@@ -155,6 +182,7 @@ class BTRComparison:
                 "price_std": price_std_across_seeds,
                 "price_std_across_seeds": price_std_across_seeds,
                 "price_mean_eur_per_day": price_mean_eur_per_day,
+                "price_7day": float(algo_data["price_7day"].mean()) if "price_7day" in algo_data.columns else None,
                 "best_price": algo_data["price_mean"].min(),
                 "worst_price": algo_data["price_mean"].max(),
                 "price_range": algo_data["price_mean"].max() - algo_data["price_mean"].min(),
@@ -239,14 +267,14 @@ class BTRComparison:
         btr_comp = self.compare_within_btr()
         if btr_comp is not None:
             report += "## Within-BTR Comparison (IQN vs C51)\n\n"
-            report += btr_comp.to_markdown(index=False)
+            report += _dataframe_to_markdown(btr_comp, index=False)
             report += "\n\n"
         
         # BTR vs SB3 comparison
         combined = self.compare_btr_vs_sb3()
         if combined is not None:
             report += "## BTR vs SB3 Comparison\n\n"
-            report += combined.to_markdown(index=False)
+            report += _dataframe_to_markdown(combined, index=False)
             report += "\n\n"
             
             # Best agent
@@ -256,6 +284,8 @@ class BTRComparison:
                 report += f"- **Algorithm**: {best['algorithm']}\n"
                 report += f"- **Seed**: {best['seed']}\n"
                 report += f"- **Price Mean**: {best['price_mean']:.2f}\n"
+                if "price_7day" in best and pd.notna(best["price_7day"]):
+                    report += f"- **Quick 7D Price**: {best['price_7day']:.2f}\n"
                 report += f"- **Price Std**: {best.get('price_std', 'N/A')}\n"
                 report += f"- **Reward Mean**: {best['reward_mean']:.2f}\n"
                 report += f"- **Model Path**: {best.get('model_path', 'N/A')}\n\n"

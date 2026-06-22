@@ -1,12 +1,14 @@
 {
   "DQN": {
-    "reward_mean": -21.505730058016002,
+    "reward_mean": -299.78034945109084,
     "reward_std": 0.0,
     "reward_std_across_seeds": 0.0,
-    "price_mean": 34.40916809282561,
+    "reward_7day": -53.350382410243014,
+    "price_mean": 479.64855912174005,
     "price_std": 0.0,
     "price_std_across_seeds": 0.0,
-    "price_mean_eur_per_day": 4.91559544183223,
+    "price_7day": 85.36061185638877,
+    "price_mean_eur_per_day": 3.9531474652890664,
     "episode_length_steps": 672,
     "episode_days": 7.0,
     "korakov_na_dan": 96,
@@ -15,9 +17,10 @@
     "n_eval_episodes": 5,
     "total_timesteps": 15000,
     "metric_semantics": {
-      "price_mean": "EUR total cumulative_payment over one evaluation episode",
-      "price_std": "across-seed std of price_mean",
-      "reward_std": "across-seed std of reward_mean"
+      "price_mean": "EUR total cumulative_payment over deterministic full-horizon test rollout",
+      "price_7day": "EUR cumulative_payment over first 7 days from deterministic test start",
+      "price_std": "across-seed std of deterministic full-horizon price_mean",
+      "reward_std": "across-seed std of deterministic full-horizon reward_mean"
     },
     "n_seeds": 1
   }

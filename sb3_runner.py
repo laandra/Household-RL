@@ -49,6 +49,77 @@ def _extract_env_metadata(env) -> Dict[str, Any]:
     }
 
 
+def _run_deterministic_horizon_eval_sb3(model, env, algorithm_name: str) -> Dict[str, Any]:
+    """Run one deterministic rollout over full dataset and extract full + first-7-day totals."""
+    prev_reset_mode = getattr(env, "reset_mode", None)
+    prev_episode_length = getattr(env, "episode_length", None)
+
+    data_length = _safe_int(getattr(env, "data_length", 0), default=0)
+    korakov_na_dan = _safe_int(getattr(env, "korakov_na_dan", 0), default=0)
+    seven_day_steps = 7 * korakov_na_dan if korakov_na_dan > 0 else 0
+
+    total_reward = 0.0
+    total_price = 0.0
+    total_steps = 0
+    reward_7day = None
+    price_7day = None
+
+    try:
+        if hasattr(env, "reset_mode"):
+            env.reset_mode = "deterministic"
+        if data_length > 0 and hasattr(env, "episode_length"):
+            env.episode_length = data_length
+
+        obs, _ = env.reset()
+        done = False
+        recurrent_state = None
+        episode_start = np.array([True], dtype=bool)
+
+        while not done:
+            if algorithm_name == "RECURRENT_PPO":
+                action, recurrent_state = model.predict(
+                    obs,
+                    state=recurrent_state,
+                    episode_start=episode_start,
+                    deterministic=True,
+                )
+            else:
+                action, _ = model.predict(obs, deterministic=True)
+
+            obs, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
+            episode_start = np.array([done], dtype=bool)
+
+            total_reward += float(reward)
+            total_steps += 1
+            if "cumulative_payment" in info:
+                total_price = float(info["cumulative_payment"])
+
+            if reward_7day is None and seven_day_steps > 0 and total_steps >= seven_day_steps:
+                reward_7day = float(total_reward)
+                price_7day = float(total_price)
+
+        if reward_7day is None:
+            reward_7day = float(total_reward)
+            price_7day = float(total_price)
+
+        return {
+            "total_reward": float(total_reward),
+            "total_price": float(total_price),
+            "total_steps": int(total_steps),
+            "reward_7day": float(reward_7day),
+            "price_7day": float(price_7day),
+            "seven_day_steps": int(seven_day_steps),
+            "seven_day_truncated": bool(seven_day_steps <= 0 or total_steps < seven_day_steps),
+            "korakov_na_dan": int(korakov_na_dan),
+        }
+    finally:
+        if prev_reset_mode is not None and hasattr(env, "reset_mode"):
+            env.reset_mode = prev_reset_mode
+        if prev_episode_length is not None and hasattr(env, "episode_length"):
+            env.episode_length = prev_episode_length
+
+
 class SB3Trainer:
     """Single-algorithm, multi-seed trainer for SB3 agents."""
 
@@ -337,6 +408,7 @@ def run_sb3_benchmark(
     all_metrics = []
     summary = {}
     eval_meta = _extract_env_metadata(eval_env)
+    test_meta = _extract_env_metadata(test_env if test_env is not None else eval_env)
 
     print(f"\n{'='*60}")
     print(f"SB3 Benchmark: {len(algorithms)} algorithms × {n_seeds} seeds")
@@ -354,6 +426,8 @@ def run_sb3_benchmark(
 
         algo_rewards = []
         algo_prices = []
+        algo_rewards_7day = []
+        algo_prices_7day = []
 
         for seed in seeds:
             print(f"  Seed {seed}...", end=" ", flush=True)
@@ -371,12 +445,27 @@ def run_sb3_benchmark(
             metrics = trainer.train()
 
             if metrics.get("success", False):
-                algo_rewards.append(metrics["reward_mean"])
-                algo_prices.append(metrics["price_mean"])
+                final_eval_env = test_env if test_env is not None else eval_env
+                final_horizon = _run_deterministic_horizon_eval_sb3(
+                    trainer.model,
+                    final_eval_env,
+                    trainer.algorithm_name,
+                )
 
+                algo_rewards.append(float(final_horizon["total_reward"]))
+                algo_prices.append(float(final_horizon["total_price"]))
+                algo_rewards_7day.append(float(final_horizon["reward_7day"]))
+                algo_prices_7day.append(float(final_horizon["price_7day"]))
+
+                data_steps = _safe_int(test_meta.get("data_length_steps"), default=0)
+                data_days = (
+                    float(data_steps) / float(final_horizon["korakov_na_dan"])
+                    if data_steps > 0 and final_horizon["korakov_na_dan"] > 0
+                    else None
+                )
                 price_mean_eur_per_day = (
-                    float(metrics["price_mean"]) / float(eval_meta["episode_days"])
-                    if eval_meta["episode_days"]
+                    float(final_horizon["total_price"]) / float(data_days)
+                    if data_days
                     else None
                 )
 
@@ -387,15 +476,26 @@ def run_sb3_benchmark(
                 all_metrics.append({
                     "algorithm": algorithm,
                     "seed": seed,
-                    "reward_mean": float(metrics["reward_mean"]),
+                    "reward_mean": float(final_horizon["total_reward"]),
+                    "reward_7day": float(final_horizon["reward_7day"]),
+                    "reward_mean_eval_checkpoints": float(metrics["reward_mean"]),
                     "reward_std_eval_checkpoints": float(metrics["reward_std"]),
                     "reward_std": float(metrics["reward_std"]),
-                    "price_mean": float(metrics["price_mean"]),
+                    "price_mean": float(final_horizon["total_price"]),
+                    "price_7day": float(final_horizon["price_7day"]),
+                    "price_mean_eval_checkpoints": float(metrics["price_mean"]),
                     "price_std_eval_checkpoints": float(metrics["price_std"]),
                     "price_std": float(metrics["price_std"]),
                     "price_mean_eur_per_day": price_mean_eur_per_day,
                     "total_timesteps": int(total_timesteps),
                     "n_eval_episodes": int(n_eval_episodes),
+                    "final_eval_steps": int(final_horizon["total_steps"]),
+                    "final_eval_data_length_steps": int(data_steps),
+                    "final_eval_days": data_days,
+                    "seven_day_steps": int(final_horizon["seven_day_steps"]),
+                    "seven_day_truncated": bool(final_horizon["seven_day_truncated"]),
+                    "final_eval_source": "test_env" if test_env is not None else "eval_env_fallback",
+                    "final_eval_semantics": "deterministic full-horizon rollout cumulative totals",
                     "episode_length_steps": int(eval_meta["episode_length_steps"]),
                     "episode_days": eval_meta["episode_days"],
                     "korakov_na_dan": int(eval_meta["korakov_na_dan"]),
@@ -404,29 +504,39 @@ def run_sb3_benchmark(
                 })
 
                 print(
-                    f"✓ R={metrics['reward_mean']:.2f}±{metrics['reward_std']:.2f} | "
-                    f"P={metrics['price_mean']:.2f}±{metrics['price_std']:.2f}"
+                    f"✓ Full R={final_horizon['total_reward']:.2f} | "
+                    f"Full P={final_horizon['total_price']:.2f} | "
+                    f"7D P={final_horizon['price_7day']:.2f}"
                 )
             else:
                 print(f"✗ Error: {metrics.get('error', 'Unknown')}")
 
         # Aggregate results across seeds
         if algo_rewards:
+            summary_data_days = (
+                float(test_meta["data_length_steps"]) / float(test_meta["korakov_na_dan"])
+                if test_meta["data_length_steps"] > 0 and test_meta["korakov_na_dan"] > 0
+                else None
+            )
             price_mean_eur_per_day = (
-                float(np.mean(algo_prices)) / float(eval_meta["episode_days"])
-                if eval_meta["episode_days"]
+                float(np.mean(algo_prices)) / float(summary_data_days)
+                if summary_data_days
                 else None
             )
             reward_std_across_seeds = float(np.std(algo_rewards))
             price_std_across_seeds = float(np.std(algo_prices))
+            reward_7day_mean = float(np.mean(algo_rewards_7day))
+            price_7day_mean = float(np.mean(algo_prices_7day))
 
             summary[algorithm] = {
                 "reward_mean": float(np.mean(algo_rewards)),
                 "reward_std": reward_std_across_seeds,
                 "reward_std_across_seeds": reward_std_across_seeds,
+                "reward_7day": reward_7day_mean,
                 "price_mean": float(np.mean(algo_prices)),
                 "price_std": price_std_across_seeds,
                 "price_std_across_seeds": price_std_across_seeds,
+                "price_7day": price_7day_mean,
                 "price_mean_eur_per_day": price_mean_eur_per_day,
                 "episode_length_steps": int(eval_meta["episode_length_steps"]),
                 "episode_days": eval_meta["episode_days"],
@@ -436,9 +546,10 @@ def run_sb3_benchmark(
                 "n_eval_episodes": int(n_eval_episodes),
                 "total_timesteps": int(total_timesteps),
                 "metric_semantics": {
-                    "price_mean": "EUR total cumulative_payment over one evaluation episode",
-                    "price_std": "across-seed std of price_mean",
-                    "reward_std": "across-seed std of reward_mean",
+                    "price_mean": "EUR total cumulative_payment over deterministic full-horizon test rollout",
+                    "price_7day": "EUR cumulative_payment over first 7 days from deterministic test start",
+                    "price_std": "across-seed std of deterministic full-horizon price_mean",
+                    "reward_std": "across-seed std of deterministic full-horizon reward_mean",
                 },
                 "n_seeds": len(algo_rewards),
             }
@@ -449,7 +560,8 @@ def run_sb3_benchmark(
             print(
                 f"\n  Summary {algorithm}:\n"
                 f"    Reward: {summary[algorithm]['reward_mean']:.2f} ± {summary[algorithm]['reward_std']:.2f}\n"
-                f"    Price:  {summary[algorithm]['price_mean']:.2f} ± {summary[algorithm]['price_std']:.2f}"
+                f"    Price:  {summary[algorithm]['price_mean']:.2f} ± {summary[algorithm]['price_std']:.2f}\n"
+                f"    Quick 7D Price: {summary[algorithm]['price_7day']:.2f}"
             )
         else:
             print(f"\n  ✗ No successful runs for {algorithm}")

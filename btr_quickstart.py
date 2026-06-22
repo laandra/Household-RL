@@ -88,8 +88,8 @@ def quickstart_single_seed_training(
     
     if metrics["success"]:
         print(f"\n✓ Training successful!")
-        print(f"  Reward: {metrics['reward_mean']:.2f} ± {metrics['reward_std']:.2f}")
-        print(f"  Energy Cost: {metrics['price_mean']:.2f} ± {metrics['price_std']:.2f}")
+        print(f"  Reward (checkpoint mean): {metrics['reward_mean']:.2f} ± {metrics['reward_std']:.2f}")
+        print(f"  Energy Cost (checkpoint mean): {metrics['price_mean']:.2f} ± {metrics['price_std']:.2f}")
         
         # Save model
         model_path = f"quickstart_{algorithm}_model.pt"
@@ -155,6 +155,9 @@ def quickstart_multi_seed_benchmark(
         print(f"\n{algo}:")
         print(f"  Reward: {metrics['reward_mean']:.2f} ± {metrics['reward_std']:.2f}")
         print(f"  Energy Cost: {metrics['price_mean']:.2f} ± {metrics['price_std']:.2f}")
+        if "reward_7day" in metrics and "price_7day" in metrics:
+            print(f"  Quick 7-day Reward: {metrics['reward_7day']:.2f}")
+            print(f"  Quick 7-day Energy Cost: {metrics['price_7day']:.2f}")
     
     return results
 
