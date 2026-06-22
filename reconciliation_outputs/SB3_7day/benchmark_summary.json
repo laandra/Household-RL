@@ -1,14 +1,14 @@
 {
   "DQN": {
-    "reward_mean": -299.78034945109084,
+    "reward_mean": -549.8978433591717,
     "reward_std": 0.0,
     "reward_std_across_seeds": 0.0,
     "reward_7day": -53.350382410243014,
-    "price_mean": 479.64855912174005,
+    "price_mean": 879.8365493746658,
     "price_std": 0.0,
     "price_std_across_seeds": 0.0,
     "price_7day": 85.36061185638877,
-    "price_mean_eur_per_day": 3.9531474652890664,
+    "price_mean_eur_per_day": 3.625700066104392,
     "episode_length_steps": 672,
     "episode_days": 7.0,
     "korakov_na_dan": 96,

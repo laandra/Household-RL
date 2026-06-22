@@ -1,14 +1,14 @@
 {
   "IQN": {
-    "reward_mean": -302.0996003238568,
+    "reward_mean": -553.260930854565,
     "reward_std": 0.0,
     "reward_std_across_seeds": 0.0,
     "reward_7day": -55.54060430180003,
-    "price_mean": 483.35936051816475,
+    "price_mean": 885.2174893672926,
     "price_std": 0.0,
     "price_std_across_seeds": 0.0,
     "price_7day": 88.86496688287997,
-    "price_mean_eur_per_day": 3.983730993281578,
+    "price_mean_eur_per_day": 3.6478742693707114,
     "episode_length_steps": 672,
     "episode_days": 7.0,
     "korakov_na_dan": 96,
