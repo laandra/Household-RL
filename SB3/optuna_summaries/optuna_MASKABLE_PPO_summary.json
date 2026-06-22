@@ -1,0 +1,15 @@
+{
+  "algorithm": "MASKABLE_PPO",
+  "study_name": "MASKABLE_PPO_tuning",
+  "best_trial_number": 9,
+  "best_value": -6.9085718917915075,
+  "best_params": {
+    "mppo_lr": 0.00017643967683381558,
+    "mppo_batch_size": 32,
+    "mppo_n_epochs": 10,
+    "mppo_gamma": 0.9941432622400352,
+    "mppo_clip": 0.2416644775485848
+  },
+  "n_trials": 20,
+  "completed_trials": 14
+}

@@ -1,0 +1,18 @@
+{
+  "algorithm": "PPO",
+  "study_name": "PPO_tuning",
+  "best_trial_number": 14,
+  "best_value": -5.968748184499812,
+  "best_params": {
+    "ppo_lr": 2.331565815536478e-05,
+    "ppo_batch_size": 64,
+    "ppo_n_epochs": 5,
+    "ppo_gamma": 0.9869225807546224,
+    "ppo_gae_lambda": 0.9832155557747115,
+    "ppo_clip": 0.15749176902790943,
+    "ppo_ent": 0.0017804446368944798,
+    "ppo_vf": 0.5689753310406266
+  },
+  "n_trials": 20,
+  "completed_trials": 10
+}

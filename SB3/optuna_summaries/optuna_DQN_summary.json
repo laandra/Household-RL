@@ -1,0 +1,18 @@
+{
+  "algorithm": "DQN",
+  "study_name": "DQN_tuning",
+  "best_trial_number": 19,
+  "best_value": -6.321356861737224,
+  "best_params": {
+    "dqn_lr": 1.5804586282593267e-05,
+    "dqn_batch_size": 128,
+    "dqn_gamma": 0.9685127509450616,
+    "dqn_exp_frac": 0.2071754545313413,
+    "dqn_eps_init": 0.8828836423964463,
+    "dqn_eps_final": 0.030837109520529912,
+    "dqn_tau": 0.0002522342780511061,
+    "dqn_grad_norm": 11.219855620513052
+  },
+  "n_trials": 20,
+  "completed_trials": 12
+}

@@ -1,0 +1,16 @@
+{
+  "algorithm": "A2C",
+  "study_name": "A2C_tuning",
+  "best_trial_number": 5,
+  "best_value": -6.9337783412811405,
+  "best_params": {
+    "a2c_lr": 0.00021137059440645722,
+    "a2c_n_steps": 16,
+    "a2c_gamma": 0.9590328149975582,
+    "a2c_ent": 0.009695846277645586,
+    "a2c_vf": 0.6100531293444458,
+    "a2c_sde": false
+  },
+  "n_trials": 20,
+  "completed_trials": 14
+}
