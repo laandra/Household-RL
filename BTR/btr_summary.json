@@ -1,16 +1,16 @@
 {
   "IQN": {
-    "reward_mean": 0.0,
-    "reward_std": 0.0,
-    "price_mean": 0.0,
-    "price_std": 0.0,
-    "error": "Training failed"
+    "reward_mean": -150.70556970219255,
+    "reward_std": 0.5274512944838763,
+    "price_mean": 482.22999255872315,
+    "price_std": 1.614750242095287,
+    "n_seeds": 3
   },
   "C51": {
-    "reward_mean": 0.0,
-    "reward_std": 0.0,
-    "price_mean": 0.0,
-    "price_std": 0.0,
-    "error": "Training failed"
+    "reward_mean": -144.96112668819785,
+    "reward_std": 6.6550419745772125,
+    "price_mean": 479.9534071839085,
+    "price_std": 1.7190932378417603,
+    "n_seeds": 3
   }
 }

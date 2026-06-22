@@ -177,11 +177,11 @@ class HouseholdEnvironment(gym.Env):
             dtype=np.float32,
         )
 
+    window_past = self.korakov_na_dan
+    window_future = 11 * (self.korakov_na_dan // 24)
     def _state_dim(self):
         if self.observation_mode == "compact":
             return 4
-        window_past = self.korakov_na_dan
-        window_future_price = 11 * (self.korakov_na_dan // 24)
         return 1 + window_past + window_past + (window_past + window_future_price)
 
     def _get_state_object(self, idx, baterija, placilo):
@@ -247,9 +247,6 @@ class HouseholdEnvironment(gym.Env):
                 ],
                 dtype=np.float32,
             )
-
-        window_past = self.korakov_na_dan
-        window_future = 11 * (self.korakov_na_dan // 24)
 
         start_past = max(0, idx - window_past + 1)
         pad_left = window_past - (idx - start_past + 1)
