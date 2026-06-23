@@ -168,6 +168,9 @@ class HouseholdEnvironment(gym.Env):
         self._battery = max(0.0, self.bat_kapaciteta / 2.0)
         self._cumulative_payment = 0.0
 
+        self.window_past = self.korakov_na_dan
+        self.window_future = 11 * (self.korakov_na_dan // 24)
+
         self.action_space = gym.spaces.Discrete(5)
         state_dim = self._state_dim()
         self.observation_space = gym.spaces.Box(
@@ -177,12 +180,15 @@ class HouseholdEnvironment(gym.Env):
             dtype=np.float32,
         )
 
-    window_past = self.korakov_na_dan
-    window_future = 11 * (self.korakov_na_dan // 24)
     def _state_dim(self):
         if self.observation_mode == "compact":
             return 4
-        return 1 + window_past + window_past + (window_past + window_future_price)
+        return (
+            1
+            + self.window_past
+            + self.window_past
+            + (self.window_past + self.window_future)
+        )
 
     def _get_state_object(self, idx, baterija, placilo):
         baterija = float(np.clip(baterija, 0.0, self.bat_kapaciteta))
@@ -248,8 +254,8 @@ class HouseholdEnvironment(gym.Env):
                 dtype=np.float32,
             )
 
-        start_past = max(0, idx - window_past + 1)
-        pad_left = window_past - (idx - start_past + 1)
+        start_past = max(0, idx - self.window_past + 1)
+        pad_left = self.window_past - (idx - start_past + 1)
 
         gen_slice = self.arr_Gen_norm[start_past : idx + 1].astype(np.float32)
         gen_window = np.concatenate([np.zeros(pad_left, dtype=np.float32), gen_slice])
@@ -257,9 +263,9 @@ class HouseholdEnvironment(gym.Env):
         con_slice = self.arr_Con_norm[start_past : idx + 1].astype(np.float32)
         con_window = np.concatenate([np.zeros(pad_left, dtype=np.float32), con_slice])
 
-        end_price = min(self.data_length, idx + window_future + 1)
+        end_price = min(self.data_length, idx + self.window_future + 1)
         price_slice = self.arr_SMP_norm[start_past:end_price].astype(np.float32)
-        pad_right = (window_past + window_future) - pad_left - len(price_slice)
+        pad_right = (self.window_past + self.window_future) - pad_left - len(price_slice)
         price_window = np.concatenate(
             [
                 np.zeros(pad_left, dtype=np.float32),
