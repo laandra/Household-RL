@@ -107,7 +107,15 @@ def plot_btr_comparison(comparison_df, metric="price_mean", title="BTR Algorithm
     errors = comparison_df.get(metric.replace("_mean", "_std"), [0] * len(algorithms)).tolist()
     
     # Color coding
-    colors = ["#1f77b4" if "IQN" in algo or "C51" in algo else "#ff7f0e" for algo in algorithms]
+    colors = []
+    for algo in algorithms:
+        algo_upper = str(algo).upper()
+        if "MILP" in algo_upper:
+            colors.append("#111111")
+        elif "IQN" in algo_upper or "C51" in algo_upper:
+            colors.append("#1f77b4")
+        else:
+            colors.append("#ff7f0e")
     
     # Create bar plot
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -283,7 +291,13 @@ def plot_algorithm_ranking(comparison_df, metric="price_mean", ascending=True, t
     fig, ax = plt.subplots(figsize=(10, 6))
     
     x_pos = np.arange(len(df_sorted))
-    colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(df_sorted)))
+    colors = []
+    gradient = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(df_sorted)))
+    for idx, algo in enumerate(df_sorted["algorithm"].astype(str).values):
+        if "MILP" in algo.upper():
+            colors.append("#111111")
+        else:
+            colors.append(gradient[idx])
     
     bars = ax.barh(x_pos, df_sorted[metric].values, color=colors, edgecolor="black", linewidth=1.5)
     
