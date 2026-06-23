@@ -1,14 +1,14 @@
 {
   "algorithm": "QR_DQN",
   "study_name": "QR_DQN_tuning",
-  "best_trial_number": 19,
-  "best_value": -6.9295910772569185,
+  "best_trial_number": 32,
+  "best_value": -6.9019491967766955,
   "best_params": {
-    "qrdqn_lr": 8.463080414744448e-05,
+    "qrdqn_lr": 0.0003941864371006769,
     "qrdqn_batch_size": 64,
-    "qrdqn_gamma": 0.9567750155625324,
-    "qrdqn_n_quantiles": 200
+    "qrdqn_gamma": 0.959580299036501,
+    "qrdqn_n_quantiles": 50
   },
-  "n_trials": 20,
-  "completed_trials": 10
+  "n_trials": 40,
+  "completed_trials": 14
 }

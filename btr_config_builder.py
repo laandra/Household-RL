@@ -51,7 +51,7 @@ def build_iqn_config(enable_optuna: bool = False) -> BTRAlgorithmConfig:
         "kappa": 1.0,  # Huber loss parameter
         
         # Network architecture
-        "hidden_size": 512,
+        "hidden_size": 512 * 8,
         "n_hidden_layers": 2,
         "activation": "relu",
         
@@ -87,7 +87,7 @@ def build_iqn_config(enable_optuna: bool = False) -> BTRAlgorithmConfig:
             "gamma": lambda trial: trial.suggest_float("iqn_gamma", 0.95, 0.9999, log=True),
             "n_quantiles": lambda trial: trial.suggest_categorical("iqn_n_quant", [64, 128, 200, 256]),
             "n_quantiles_samples": lambda trial: trial.suggest_categorical("iqn_n_quant_samples", [16, 32, 64]),
-            "hidden_size": lambda trial: trial.suggest_categorical("iqn_hidden", [256, 512, 1024]),
+            "hidden_size": lambda trial: trial.suggest_categorical("iqn_hidden", [256 * 8, 512 * 8, 1024 * 8]),
             "exploration_fraction": lambda trial: trial.suggest_float("iqn_exp_frac", 0.05, 0.3),
             "exploration_final_eps": lambda trial: trial.suggest_float("iqn_eps_final", 0.01, 0.1),
             "max_grad_norm": lambda trial: trial.suggest_float("iqn_grad_norm", 5.0, 20.0),
@@ -139,7 +139,7 @@ def build_c51_config(enable_optuna: bool = False) -> BTRAlgorithmConfig:
         "v_max": 10.0,  # Maximum value support
         
         # Network architecture
-        "hidden_size": 512,
+        "hidden_size": 512 * 8,
         "n_hidden_layers": 2,
         "activation": "relu",
         
@@ -176,7 +176,7 @@ def build_c51_config(enable_optuna: bool = False) -> BTRAlgorithmConfig:
             "n_atoms": lambda trial: trial.suggest_categorical("c51_n_atoms", [31, 51, 81]),
             "v_min": lambda trial: trial.suggest_float("c51_v_min", -20.0, -5.0),
             "v_max": lambda trial: trial.suggest_float("c51_v_max", 5.0, 20.0),
-            "hidden_size": lambda trial: trial.suggest_categorical("c51_hidden", [256, 512, 1024]),
+            "hidden_size": lambda trial: trial.suggest_categorical("c51_hidden", [256 * 8, 512 * 8, 1024 * 8]),
             "exploration_fraction": lambda trial: trial.suggest_float("c51_exp_frac", 0.05, 0.3),
             "exploration_final_eps": lambda trial: trial.suggest_float("c51_eps_final", 0.01, 0.1),
             "max_grad_norm": lambda trial: trial.suggest_float("c51_grad_norm", 5.0, 20.0),

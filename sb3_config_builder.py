@@ -219,7 +219,7 @@ def build_recurrent_ppo_config(enable_optuna: bool = False) -> SB3AlgorithmConfi
         "ent_coef": 0.0,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
-        "lstm_hidden_size": 256,
+        "lstm_hidden_size": 256 * 8,
         "n_lstm_layers": 1,
     }
 
@@ -230,7 +230,7 @@ def build_recurrent_ppo_config(enable_optuna: bool = False) -> SB3AlgorithmConfi
             "batch_size": lambda trial: trial.suggest_categorical("rppo_batch_size", [32, 64]),
             "n_epochs": lambda trial: trial.suggest_categorical("rppo_n_epochs", [5, 10]),
             "gamma": lambda trial: trial.suggest_float("rppo_gamma", 0.95, 0.9999, log=True),
-            "lstm_hidden_size": lambda trial: trial.suggest_categorical("rppo_lstm_size", [128, 256, 512]),
+            "lstm_hidden_size": lambda trial: trial.suggest_categorical("rppo_lstm_size", [128 * 8, 256 * 8, 512 * 8]),
         }
 
     return SB3AlgorithmConfig(

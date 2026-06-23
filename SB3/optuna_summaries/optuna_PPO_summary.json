@@ -13,6 +13,6 @@
     "ppo_ent": 0.0017804446368944798,
     "ppo_vf": 0.5689753310406266
   },
-  "n_trials": 20,
-  "completed_trials": 10
+  "n_trials": 40,
+  "completed_trials": 13
 }

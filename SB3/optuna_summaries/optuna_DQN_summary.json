@@ -13,6 +13,6 @@
     "dqn_tau": 0.0002522342780511061,
     "dqn_grad_norm": 11.219855620513052
   },
-  "n_trials": 20,
-  "completed_trials": 12
+  "n_trials": 40,
+  "completed_trials": 18
 }
