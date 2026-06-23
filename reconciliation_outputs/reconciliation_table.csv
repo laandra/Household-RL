@@ -1,5 +1,5 @@
 horizon,family,algorithm,price_total_eur,price_std,price_std_across_seeds,episode_length_steps,episode_days,reset_mode,n_seeds,n_eval_episodes
-7day,SB3,DQN,879.8365493746658,0.0,0.0,672,7.0,sequential,1,5
+7day,SB3,DQN,870.7819125036873,0.0,0.0,672,7.0,sequential,1,5
 7day,BTR,IQN,885.2174893672926,0.0,0.0,672,7.0,sequential,1,5
-fullsplit,SB3,DQN,877.6054098056774,0.0,0.0,23295,242.65625,sequential,1,5
+fullsplit,SB3,DQN,868.0777404303287,0.0,0.0,23295,242.65625,sequential,1,5
 fullsplit,BTR,IQN,885.2174893672926,0.0,0.0,23295,242.65625,sequential,1,5

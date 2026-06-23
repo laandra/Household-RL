@@ -1,15 +1,15 @@
 {
   "algorithm": "MASKABLE_PPO",
   "study_name": "MASKABLE_PPO_tuning",
-  "best_trial_number": 9,
-  "best_value": -6.9085718917915075,
+  "best_trial_number": 46,
+  "best_value": 14.353941240824861,
   "best_params": {
-    "mppo_lr": 0.00017643967683381558,
-    "mppo_batch_size": 32,
-    "mppo_n_epochs": 10,
-    "mppo_gamma": 0.9941432622400352,
-    "mppo_clip": 0.2416644775485848
+    "mppo_lr": 0.0006503035756011685,
+    "mppo_batch_size": 128,
+    "mppo_n_epochs": 5,
+    "mppo_gamma": 0.9901893699301202,
+    "mppo_clip": 0.3304033622989529
   },
-  "n_trials": 40,
-  "completed_trials": 19
+  "n_trials": 60,
+  "completed_trials": 38
 }

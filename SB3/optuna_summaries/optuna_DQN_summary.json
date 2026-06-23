@@ -1,18 +1,18 @@
 {
   "algorithm": "DQN",
   "study_name": "DQN_tuning",
-  "best_trial_number": 19,
-  "best_value": -6.321356861737224,
+  "best_trial_number": 54,
+  "best_value": 6.418894443196405,
   "best_params": {
-    "dqn_lr": 1.5804586282593267e-05,
-    "dqn_batch_size": 128,
-    "dqn_gamma": 0.9685127509450616,
-    "dqn_exp_frac": 0.2071754545313413,
-    "dqn_eps_init": 0.8828836423964463,
-    "dqn_eps_final": 0.030837109520529912,
-    "dqn_tau": 0.0002522342780511061,
-    "dqn_grad_norm": 11.219855620513052
+    "dqn_lr": 0.0008777729264450351,
+    "dqn_batch_size": 64,
+    "dqn_gamma": 0.9846922464062141,
+    "dqn_exp_frac": 0.27923706588307184,
+    "dqn_eps_init": 0.8644271875285907,
+    "dqn_eps_final": 0.03495290739184324,
+    "dqn_tau": 0.0006385544908042281,
+    "dqn_grad_norm": 12.02356056483531
   },
-  "n_trials": 40,
-  "completed_trials": 18
+  "n_trials": 60,
+  "completed_trials": 36
 }

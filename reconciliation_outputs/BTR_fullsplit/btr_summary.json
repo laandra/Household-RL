@@ -1,9 +1,9 @@
 {
   "IQN": {
-    "reward_mean": -553.260930854565,
+    "reward_mean": -276.6553140775385,
     "reward_std": 0.0,
     "reward_std_across_seeds": 0.0,
-    "reward_7day": -55.54060430180003,
+    "reward_7day": -27.795150801156005,
     "price_mean": 885.2174893672926,
     "price_std": 0.0,
     "price_std_across_seeds": 0.0,

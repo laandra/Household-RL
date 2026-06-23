@@ -1,15 +1,15 @@
 {
   "algorithm": "RECURRENT_PPO",
   "study_name": "RECURRENT_PPO_tuning",
-  "best_trial_number": 37,
-  "best_value": -6.51283396248594,
+  "best_trial_number": 41,
+  "best_value": 16.896651322664184,
   "best_params": {
-    "rppo_lr": 0.0003368615893259961,
+    "rppo_lr": 0.00024828361034779446,
     "rppo_batch_size": 64,
     "rppo_n_epochs": 5,
-    "rppo_gamma": 0.9723213527875848,
+    "rppo_gamma": 0.97224750860787,
     "rppo_lstm_size": 512
   },
-  "n_trials": 40,
-  "completed_trials": 17
+  "n_trials": 60,
+  "completed_trials": 34
 }
