@@ -11,6 +11,6 @@
     "a2c_vf": 0.6850640150707459,
     "a2c_sde": false
   },
-  "n_trials": 100,
-  "completed_trials": 58
+  "n_trials": 140,
+  "completed_trials": 60
 }

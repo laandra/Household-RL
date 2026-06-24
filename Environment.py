@@ -169,7 +169,7 @@ class HouseholdEnvironment(gym.Env):
         self._battery = max(0.0, self.bat_kapaciteta / 2.0)
         self._cumulative_payment = 0.0
 
-        self.window_past = self.korakov_na_dan
+        self.window_past = self.korakov_na_dan * 0
         self.window_future = 11 * (self.korakov_na_dan // 24)
 
         self.action_space = gym.spaces.Discrete(5)

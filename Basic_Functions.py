@@ -51,6 +51,40 @@ class Action(Enum):
     BAT_PRODAJ = 3      # Napajaš hišo in prodajaš iz baterije
     # BAT_POCIVAJ = 4     #Ne uporabi baterije
     
+
+def _nagrada_1(self, s):
+    alfa = 0.1
+    beta = 0.8
+    soc = s.Baterija_norm
+    if soc < alfa:
+        return -5.0 * (alfa - soc) * self.faktor_n1
+    if soc > beta:
+        return -5.0 * (soc - beta) * self.faktor_n1
+    return 0.0
+
+def _nagrada_2(self, s, sprememba_baterije, _cena_el_med):
+    if self.bat_kapaciteta <= 0:
+        return 0.0
+    gamma2 = 3.0
+    norm_change = sprememba_baterije / self.bat_kapaciteta
+    return -5.0 * gamma2 * norm_change * s.CenaElRel * self.faktor_n2
+
+def _nagrada_3(self, placilo_zdaj):
+    delta = 5.0 / 8.0
+    return -delta * placilo_zdaj * self.faktor_n3
+
+def _nagrada_skupno(self, s, sprememba_baterije, placilo_zdaj, cena_el_med):
+    if self.bat_kapaciteta <= 0:
+        return self._nagrada_3(placilo_zdaj)
+    denominator = self.faktor_n1 + self.faktor_n2 + self.faktor_n3
+    if denominator <= 0:
+        return self._nagrada_3(placilo_zdaj)
+    return (
+        self._nagrada_1(s)
+        + self._nagrada_2(s, sprememba_baterije, cena_el_med)
+        + self._nagrada_3(placilo_zdaj)
+    ) / denominator
+
     
 import datetime
 
