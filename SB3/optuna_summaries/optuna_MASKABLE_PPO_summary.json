@@ -10,6 +10,6 @@
     "mppo_gamma": 0.9901893699301202,
     "mppo_clip": 0.3304033622989529
   },
-  "n_trials": 60,
-  "completed_trials": 38
+  "n_trials": 80,
+  "completed_trials": 58
 }

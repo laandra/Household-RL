@@ -9,6 +9,6 @@
     "qrdqn_gamma": 0.9770263455125814,
     "qrdqn_n_quantiles": 50
   },
-  "n_trials": 60,
-  "completed_trials": 33
+  "n_trials": 80,
+  "completed_trials": 53
 }

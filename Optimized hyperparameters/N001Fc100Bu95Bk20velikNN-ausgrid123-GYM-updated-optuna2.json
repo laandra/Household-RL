@@ -1,0 +1,10 @@
+{
+    "gamma": 0.8070937228706822,
+    "lr": 0.0009874870985571342,
+    "epsilon_start": 0.9342400189703732,
+    "epsilon_end": 0.03252171209144521,
+    "exploration_fraction": 0.4417039276919045,
+    "batch_size": 32,
+    "replace_target": 690,
+    "weight_decay": 0.0008221461546167538
+}
