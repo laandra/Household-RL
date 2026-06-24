@@ -471,7 +471,17 @@ class HouseholdEnvironment(gym.Env):
         next_s = self._get_state_object(next_idx, new_battery, new_payment)
 
         cena_el_med = self.arr_MedianPrice[s.Korak]
-        reward = self._nagrada_skupno(s, sprememba_baterije, placilo_zdaj, cena_el_med)
+        
+        # Calculate illegal action penalty
+        penalty = 0.0
+        if action_int in [2, 3] and s.Baterija <= 1e-8:
+            penalty = -0.5 # Tried to discharge an empty battery
+        elif action_int in [0, 1] and s.Baterija >= (self.bat_kapaciteta - 1e-8) and ostala_energija > 0:
+            penalty = -0.5 # Tried to charge a full battery
+                    
+        reward = self._nagrada_skupno(s, sprememba_baterije, placilo_zdaj, cena_el_med) + penalty
+        reward = float(np.clip(reward, -10.0, 5.0))
+        
         r_kapaciteta = self._nagrada_1(s)
         r_sprememba = self._nagrada_2(s, sprememba_baterije, cena_el_med) if self.bat_kapaciteta > 0 else 0.0
         r_placilo = self._nagrada_3(placilo_zdaj)
