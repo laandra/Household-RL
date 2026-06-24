@@ -10,6 +10,6 @@
     "rppo_gamma": 0.97224750860787,
     "rppo_lstm_size": 512
   },
-  "n_trials": 80,
+  "n_trials": 100,
   "completed_trials": 54
 }

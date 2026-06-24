@@ -8,6 +8,7 @@ from Basic_Functions import (
     BatMaxPraTrenutno,
     BaterijaSprememba,
     PaneliOdvec,
+    calculate_interval_price,
 )
 
 
@@ -451,13 +452,22 @@ class HouseholdEnvironment(gym.Env):
             self.bat_ucinkovitost,
         )
 
-        if kupljena_elektrika > 0:
-            placilo_zdaj = s.CenaEl * kupljena_elektrika
-        else:
-            placilo_zdaj = s.CenaEl * kupljena_elektrika * self.faktor_cenitve
+        #if kupljena_elektrika > 0:
+        #    placilo_zdaj = s.CenaEl * kupljena_elektrika
+        #else:
+        #    placilo_zdaj = s.CenaEl * kupljena_elektrika * self.faktor_cenitve
+            
+        _price_result = calculate_interval_price(
+            s.CenaEl,
+            kupljena_elektrika,
+            utc_date = self.dataset.index[s.Korak],
+            interval_minutes = self.korakov_na_dan * 60 / 24,
+        )
+        konstantno_placilo = float(_price_result["constant_price_aud"])
+        placilo_zdaj = float(_price_result["variable_price_aud"])
 
         new_battery = float(np.clip(s.Baterija + sprememba_baterije, 0.0, self.bat_kapaciteta))
-        new_payment = s.Placilo + placilo_zdaj
+        new_payment = s.Placilo + placilo_zdaj + konstantno_placilo
         next_s = self._get_state_object(next_idx, new_battery, new_payment)
 
         cena_el_med = self.arr_MedianPrice[s.Korak]
