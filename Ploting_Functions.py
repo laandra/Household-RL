@@ -15,6 +15,12 @@ def plotMultiY(X, Y=None, X_label="X_os", Y_Label=None,
     if legend is None:
         legend = ["" for _ in range(max(1, len(Y)))]
 
+    # Normalize to mutable Python lists; callers often pass numpy/pandas objects.
+    X = list(X)
+    Y = [list(series) for series in Y]
+    Y_Label = list(Y_Label)
+    legend = list(legend)
+
     barve = ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]
     line_type = ["-", "--", ":", "-."]
 
