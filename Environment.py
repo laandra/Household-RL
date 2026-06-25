@@ -85,7 +85,6 @@ class HouseholdEnvironment(gym.Env):
         bat_ucinkovitost=0.95,
         bat_max_polnjenje=1.5,
         bat_max_praznjenje=1.5,
-        faktor_cenitve=2.0 / 3.0,
         faktor_n1=0.0,
         faktor_n2=1.0,
         faktor_n3=1.0,
@@ -117,7 +116,6 @@ class HouseholdEnvironment(gym.Env):
         self.bat_ucinkovitost = float(bat_ucinkovitost)
         self.bat_max_polnjenje = float(bat_max_polnjenje)
         self.bat_max_praznjenje = float(bat_max_praznjenje)
-        self.faktor_cenitve = float(faktor_cenitve)
         self.faktor_n1 = float(faktor_n1)
         self.faktor_n2 = float(faktor_n2)
         self.faktor_n3 = float(faktor_n3)
@@ -183,9 +181,9 @@ class HouseholdEnvironment(gym.Env):
 
     def _state_dim(self):
         if self.observation_mode == "compact":
-            return 4
+            return 6
         return (
-            1
+            1 + 2
             + self.window_past
             + self.window_past
             + (self.window_past + self.window_future)
@@ -244,6 +242,11 @@ class HouseholdEnvironment(gym.Env):
         )
 
     def _build_observation(self, idx, baterija_norm):
+        # Create cyclical time features
+        hour_fraction = (self.arr_Hour[idx] + self.arr_Minute[idx]/60.0) / 24.0
+        sin_time = np.sin(2 * np.pi * hour_fraction)
+        cos_time = np.cos(2 * np.pi * hour_fraction)
+
         if self.observation_mode == "compact":
             return np.array(
                 [
@@ -251,6 +254,8 @@ class HouseholdEnvironment(gym.Env):
                     self.arr_Gen_norm[idx],
                     self.arr_Con_norm[idx],
                     self.arr_SMP_norm[idx],
+                    sin_time,
+                    cos_time
                 ],
                 dtype=np.float32,
             )
@@ -281,6 +286,7 @@ class HouseholdEnvironment(gym.Env):
                 gen_window,
                 con_window,
                 price_window,
+                np.array([sin_time, cos_time], dtype=np.float32),
             ]
         ).astype(np.float32)
 

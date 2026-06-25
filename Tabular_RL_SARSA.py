@@ -8,6 +8,7 @@ from Basic_Functions import (
     BatMaxPolTrenutno,
     BatMaxPraTrenutno,
     BaterijaSprememba,
+    calculate_interval_price,
     PaneliOdvec,
     State,
 )
@@ -112,6 +113,23 @@ class LinearFunctionSarsaAgent:
             return pd.NaT
         safe_idx = int(np.clip(step_idx, 0, len(environment.dataset.index) - 1))
         return environment.dataset.index[safe_idx]
+
+    def _calculate_interval_price(self, environment, current_info, next_info):
+        step_idx = int(current_info.get("step_idx", 0))
+        energy_flows = next_info.get("energy_flows", {})
+        total_consumed_kwh = float(
+            energy_flows.get(
+                "kupljena_elektrika",
+                float(next_info.get("consumption", 0.0)) - float(next_info.get("generation", 0.0)),
+            )
+        )
+
+        return calculate_interval_price(
+            float(current_info.get("price", 0.0)),
+            total_consumed_kwh,
+            self._date_from_step(environment, step_idx),
+            interval_minutes=environment.korakov_na_dan * 60 / 24,
+        )
 
     def get_clear_tensor(self):
         return np.zeros(
@@ -234,7 +252,10 @@ class LinearFunctionSarsaAgent:
                 self.Date.append(self._date_from_step(active_env, next_info.get("step_idx", 0)))
                 self.Nagrada.append(float(delta))
                 self.NapolnjenostBaterije.append(float(next_info.get("battery", 0.0)))
-                self.Cena.append(float(next_info.get("price", 0.0)))
+                interval_price = self._calculate_interval_price(active_env, current_info, next_info)
+                self.Cena.append(
+                    float(interval_price["constant_price_aud"]) + float(interval_price["variable_price_aud"])
+                )
                 self.NagradaSkupno.append(self.NagradaSkupno[-1] + float(reward))
                 self.NagradaKapaciteta.append(
                     self.NagradaKapaciteta[-1] + float(reward_components.get("r_kapaciteta", 0.0))
