@@ -167,13 +167,13 @@ class ContinuousHouseholdWrapper(gym.Wrapper):
         )
 
         # ── Battery state change ─────────────────────────────────────────────
-        # paneli_baterija, omrezje_baterija → charging side
-        # baterija_dom, baterija_omrezje    → discharging side
+        # paneli_baterija, omrezje_baterija → charging side (raw source energy; BaterijaSprememba × eta = stored)
+        # baterija_dom, baterija_omrezje    → discharging side (delivered energy; BaterijaSprememba ÷ eta = drawn from bat)
         sprememba_baterije = BaterijaSprememba(
-            solar_to_bat,    # paneli_baterija
-            grid_to_bat,     # omrezje_baterija  (raw kWh drawn from grid for bat)
-            home_from_bat / eta if eta > 0 else home_from_bat,   # baterija_dom (energy leaving bat)
-            grid_from_bat / eta if eta > 0 else grid_from_bat,   # baterija_omrezje
+            solar_to_bat,    # paneli_baterija  – raw kWh from solar
+            grid_to_bat,     # omrezje_baterija – raw kWh from grid
+            home_from_bat,   # baterija_dom     – kWh delivered to home (BaterijaSprememba divides by eta)
+            grid_from_bat,   # baterija_omrezje – kWh delivered to grid
             eta,
         )
 
@@ -196,6 +196,7 @@ class ContinuousHouseholdWrapper(gym.Wrapper):
         # ── Reward (exact same function as base env) ─────────────────────────
         cena_el_med   = e.arr_MedianPrice[idx]
         reward        = e._nagrada_skupno(s, sprememba_baterije, placilo_zdaj, cena_el_med)
+        reward        = float(np.clip(reward, -10.0, 5.0))
         r_kapaciteta  = e._nagrada_1(s)
         r_sprememba   = e._nagrada_2(s, sprememba_baterije, cena_el_med) if e.bat_kapaciteta > 0 else 0.0
         r_placilo     = e._nagrada_3(placilo_zdaj)
@@ -216,8 +217,8 @@ class ContinuousHouseholdWrapper(gym.Wrapper):
             energy_flows={
                 "paneli_baterija":   float(solar_to_bat),
                 "omrezje_baterija":  float(grid_to_bat),
-                "baterija_dom":      float(home_from_bat / eta if eta > 0 else home_from_bat),
-                "baterija_omrezje":  float(grid_from_bat / eta if eta > 0 else grid_from_bat),
+                "baterija_dom":      float(home_from_bat),
+                "baterija_omrezje":  float(grid_from_bat),
                 "kupljena_elektrika": float(kupljena_elektrika),
                 "sprememba_baterije": float(sprememba_baterije),
                 "P_ch_kWh":          float(P_ch),
