@@ -128,7 +128,7 @@ class LinearFunctionSarsaAgent:
             float(current_info.get("price", 0.0)),
             total_consumed_kwh,
             self._date_from_step(environment, step_idx),
-            interval_minutes=environment.korakov_na_dan * 60 / 24,
+            interval_minutes=1440.0 / environment.korakov_na_dan,
         )
 
     def get_clear_tensor(self):

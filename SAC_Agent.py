@@ -182,7 +182,7 @@ class ContinuousHouseholdWrapper(gym.Wrapper):
             s.CenaEl,
             kupljena_elektrika,
             utc_date=e.dataset.index[idx],
-            interval_minutes=e.korakov_na_dan * 60 / 24,
+            interval_minutes=1440.0 / e.korakov_na_dan,
         )
         konstantno_placilo = float(price_result["constant_price_aud"])
         placilo_zdaj       = float(price_result["variable_price_aud"])
