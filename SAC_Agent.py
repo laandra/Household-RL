@@ -142,7 +142,7 @@ class ContinuousHouseholdWrapper(gym.Wrapper):
 
         # ── Allocate solar surplus to battery charge first ───────────────────
         solar_to_bat  = min(solar_surplus, P_ch / eta if eta > 0 else P_ch)
-        grid_to_bat   = max(0.0, P_ch / eta - solar_to_bat) if eta > 0 else 0.0
+        grid_to_bat   = max(0.0, (P_ch / eta - solar_to_bat) if eta > 0 else (P_ch - solar_to_bat))
 
         # Remaining solar after battery fill goes to grid (feed-in)
         solar_to_grid = max(0.0, solar_surplus - solar_to_bat)
@@ -159,11 +159,12 @@ class ContinuousHouseholdWrapper(gym.Wrapper):
         # ── Grid import/export ───────────────────────────────────────────────
         # Positive = buying, Negative = selling
         kupljena_elektrika = (
-            max(0.0, con - gen)         # base grid demand (solar covers first)
+            con
+            - gen
             + grid_to_bat               # grid energy to charge battery
+            + solar_to_bat               # solar energy to charge battery
             - home_from_bat             # battery covers home demand
             - grid_from_bat             # battery sells to grid
-            - solar_to_grid             # solar feeds into grid
         )
 
         # ── Battery state change ─────────────────────────────────────────────
@@ -176,6 +177,15 @@ class ContinuousHouseholdWrapper(gym.Wrapper):
             grid_from_bat,   # baterija_omrezje – kWh delivered to grid
             eta,
         )
+        
+        if abs((solar_to_bat + grid_to_bat ) + s.Poraba - s.Generiranje - kupljena_elektrika - (home_from_bat + grid_from_bat)) > 1e-8:
+            raise ValueError(
+                f"Energy balance error: "
+                f"(solar_to_bat + grid_to_bat)={solar_to_bat + grid_to_bat}, "
+                f"Poraba={s.Poraba}, Generiranje={s.Generiranje}, "
+                f"kupljena_elektrika={kupljena_elektrika}, "
+                f"(home_from_bat + grid_from_bat)={home_from_bat + grid_from_bat}"
+            )
 
         # ── Pricing ──────────────────────────────────────────────────────────
         price_result = calculate_interval_price(
@@ -189,6 +199,20 @@ class ContinuousHouseholdWrapper(gym.Wrapper):
 
         # ── Update battery and payment ────────────────────────────────────────
         new_battery = float(np.clip(s.Baterija + sprememba_baterije, 0.0, e.bat_kapaciteta))
+        
+        if s.Baterija + sprememba_baterije < -1e-8 or s.Baterija + sprememba_baterije > e.bat_kapaciteta + 1e-8:
+            raise ValueError(
+                f"Battery state out of bounds: "
+                f"current={s.Baterija}, change={sprememba_baterije}, "
+                f"new={new_battery}, capacity={e.bat_kapaciteta}"
+            )
+        if abs(new_battery - s.Baterija - sprememba_baterije) > 1e-8:
+            raise ValueError(
+                f"Battery state mismatch: "
+                f"current={s.Baterija}, change={sprememba_baterije}, "
+                f"new={new_battery}"
+            )
+        
         new_payment = s.Placilo + placilo_zdaj + konstantno_placilo
         next_idx    = idx + 1
         next_s      = e._get_state_object(next_idx, new_battery, new_payment)

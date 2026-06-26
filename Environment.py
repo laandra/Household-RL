@@ -457,7 +457,16 @@ class HouseholdEnvironment(gym.Env):
             baterija_omrezje,
             self.bat_ucinkovitost,
         )
-
+        
+        if abs((paneli_baterija + omrezje_baterija ) + s.Poraba - s.Generiranje - kupljena_elektrika - (baterija_dom + baterija_omrezje)) > 1e-8:
+            raise ValueError(
+                f"Energy balance error: "
+                f"(paneli_baterija + omrezje_baterija)={paneli_baterija + omrezje_baterija}, "
+                f"Poraba={s.Poraba}, Generiranje={s.Generiranje}, "
+                f"kupljena_elektrika={kupljena_elektrika}, "
+                f"(baterija_dom + baterija_omrezje)={baterija_dom + baterija_omrezje}"
+            )
+        
         #if kupljena_elektrika > 0:
         #    placilo_zdaj = s.CenaEl * kupljena_elektrika
         #else:
@@ -473,6 +482,18 @@ class HouseholdEnvironment(gym.Env):
         placilo_zdaj = float(_price_result["variable_price_aud"])
 
         new_battery = float(np.clip(s.Baterija + sprememba_baterije, 0.0, self.bat_kapaciteta))
+        if s.Baterija + sprememba_baterije < -1e-8 or s.Baterija + sprememba_baterije > self.bat_kapaciteta + 1e-8:
+            raise ValueError(
+                f"Battery state out of bounds: "
+                f"current={s.Baterija}, change={sprememba_baterije}, "
+                f"new={new_battery}, capacity={self.bat_kapaciteta}"
+            )
+        if abs(new_battery - s.Baterija - sprememba_baterije) > 1e-8:
+            raise ValueError(
+                f"Battery state mismatch: "
+                f"current={s.Baterija}, change={sprememba_baterije}, "
+                f"new={new_battery}"
+            )
         new_payment = s.Placilo + placilo_zdaj + konstantno_placilo
         next_s = self._get_state_object(next_idx, new_battery, new_payment)
 
