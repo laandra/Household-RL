@@ -98,8 +98,8 @@ def calculate_interval_price(
     # -------------------------------------------------------------------------
     # 3. VARIABLE COSTS (Price of Electricity)
     # -------------------------------------------------------------------------
-    # Convert spot price from MWh to kWh
-    spot_price_kwh = smp_market_price_mwh / 1000.0
+    # Convert spot price from EUR back to AUD/kWh
+    spot_price_kwh = smp_market_price_mwh/0.615 #/ 1000.0
     
     # AEMO Loss Factors: Accounts for energy lost as heat during transmission
     # Source: AEMO Published Loss Factors 2025/2026
