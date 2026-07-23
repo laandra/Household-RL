@@ -8,8 +8,9 @@ from Basic_Functions import (
     BatMaxPraTrenutno,
     BaterijaSprememba,
     PaneliOdvec,
-    calculate_interval_price,
 )
+
+from Pricing_Functions import calculate_interval_price
 
 
 class _StateDQN:
