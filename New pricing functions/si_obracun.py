@@ -288,7 +288,8 @@ def skupnost(market_price_mwh: float, total_consumed_kwh: float,
 # 2. MESEČNI RAČUN
 # ===========================================================================
 FIKSNE_POSTAVKE = frozenset({"mesecno_nadomestilo", "omreznina_moc",
-                             "omreznina_presezna_moc", "prispevek_ove_spte"})
+                             "omreznina_presezna_moc", "prispevek_ove_spte",
+                             "nadomestilo_souporaba"})
 
 
 @dataclass
@@ -387,6 +388,7 @@ class MesecniObracun:
         self._post: Dict[str, float] = defaultdict(float)
         self._dobropis = 0.0
         self._prevzeto = self._deljeno = self._oddano = self._lastna = 0.0
+        self._neizrabljeno = 0.0
         self._po_blokih: Dict[int, float] = defaultdict(float)
         self._prekoracitve: Dict[int, float] = defaultdict(float)
         self._energija_kwh = self._energija_eur = 0.0
@@ -399,7 +401,10 @@ class MesecniObracun:
             self._post[k] += v
         self._dobropis += interval.get("dobropis_odkup", 0.0)
         self._prevzeto += interval.get("prevzeto_kwh", 0.0)
-        self._deljeno += interval.get("deljeno_kwh", 0.0)
+        self._deljeno += (interval.get("deljeno_kwh", 0.0)
+                          + interval.get("preneseno_kwh", 0.0)
+                          + interval.get("izrabljeno_souporaba_kwh", 0.0))
+        self._neizrabljeno += interval.get("neizrabljeno_souporaba_kwh", 0.0)
         self._oddano += interval.get("oddano_kwh", 0.0)
         self._lastna += interval.get("lastna_raba_kwh", 0.0)
         self._po_blokih[blok] += interval.get("prevzeto_kwh", 0.0)
@@ -479,6 +484,7 @@ class MesecniObracun:
                 "lastna_raba_kwh": round(self._lastna, 2),
                 "deljeno_kwh": round(self._deljeno, 2),
                 "oddano_kwh": round(self._oddano, 2),
+                "neizrabljena_souporaba_kwh": round(self._neizrabljeno, 2),
                 "presezna_moc_kw_po_blokih": {
                     k: round(math.sqrt(v), 3)
                     for k, v in sorted(self._prekoracitve.items())}},
@@ -540,3 +546,206 @@ def obracun_skupnosti(clani: Dict[str, Dict], podatki: Sequence[Dict],
                 meritve_15min=g.meritve_15min))
 
     return {ime: o.zakljuci() for ime, o in obracuni.items()}
+
+
+# ===========================================================================
+# 4. SOUPORABA ELEKTRIČNE ENERGIJE (ZOEE)
+# ===========================================================================
+"""
+Razlika proti skupnostni samooskrbi (`skupnost()`):
+  * souporaba zniža SAMO obračunsko količino energije pri prejemniku;
+    omrežnina, prispevki in trošarina se obračunajo od CELOTNEGA prevzema
+    iz omrežja  [S1][S3],
+  * deli se ODDANA energija (presežek po lastni rabi) po 15-min intervalih,
+    delež se nanaša na oddano energijo, ne na proizvodnjo  [S3],
+  * neizrabljena deljena energija se NE prenese naprej in ne da dobropisa —
+    pripade dobavitelju prejemnika  [S1][S3].
+"""
+from si_paketi import StoritevSouporabe, Vloga, preveri_souporabo   # noqa: E402
+
+
+def souporaba_oddajnik(
+    market_price_mwh: float, total_consumed_kwh: float,
+    utc_date: dt.datetime, interval_minutes: int = 15, *,
+    total_produced_kwh: float = 0.0, delez_souporabe: float = 0.0,
+    paket: Paket, pravila: Optional[Pravila] = None,
+    cena_souporabe_eur_kwh: float = 0.0,
+    placilo_za_neizrabljeno: bool = True,
+    dejansko_izrabljeno_kwh: Optional[float] = None,
+    meritve_15min: bool = True,
+) -> Dict:
+    """
+    Oddajnik v souporabi.
+
+    Presežek intervala = proizvodnja − poraba (če > 0).
+      delez_souporabe * presežek  -> preneseno prejemnikom (prihodek po dogovoru)
+      preostanek                  -> odkup pri lastnem dobavitelju po ceniku
+
+    `placilo_za_neizrabljeno=True` (privzeto): oddajnik prejme plačilo za
+    celotno preneseno količino, ne glede na to, ali jo prejemnik porabi —
+    energija se mu odšteje v vsakem primeru. Če se pogodbeno dogovorita, da
+    se plača le dejansko izrabljena količina, nastavi na False in podaj
+    `dejansko_izrabljeno_kwh`.
+    """
+    pravila = pravila or Pravila.ob_datumu(v_lokalni_cas(utc_date).date())
+    ctx = _kontekst(utc_date, interval_minutes, pravila)
+
+    neto = total_consumed_kwh - total_produced_kwh
+    prevzem, presezek = max(neto, 0.0), max(-neto, 0.0)
+
+    v_souporabo = presezek * delez_souporabe
+    za_odkup = presezek - v_souporabo
+
+    cena = _cena_prevzema(paket, ctx, market_price_mwh, meritve_15min)
+    cena_odd = _cena_oddaje(paket, ctx, market_price_mwh, meritve_15min)
+
+    post = {"energija": prevzem * cena,
+            "omreznina_energija": prevzem * pravila.omreznina.energija[ctx["blok"]]}
+    post.update(_dajatve(prevzem))
+
+    placano = (v_souporabo if placilo_za_neizrabljeno
+               else (dejansko_izrabljeno_kwh
+                     if dejansko_izrabljeno_kwh is not None else v_souporabo))
+
+    return _rezultat(
+        ctx, prevzem, post,
+        dobropis=za_odkup * cena_odd + placano * cena_souporabe_eur_kwh,
+        oddano_kwh=za_odkup,
+        preneseno_kwh=v_souporabo,
+        lastna_raba_kwh=min(total_consumed_kwh, total_produced_kwh),
+        cena_energije_eur_kwh=cena, cena_oddaje_eur_kwh=cena_odd,
+    )
+
+
+def souporaba_prejemnik(
+    market_price_mwh: float, total_consumed_kwh: float,
+    utc_date: dt.datetime, interval_minutes: int = 15, *,
+    prejeto_kwh: float = 0.0,
+    paket: Paket, pravila: Optional[Pravila] = None,
+    cena_souporabe_eur_kwh: float = 0.0,
+    placilo_za_neizrabljeno: bool = True,
+    lastna_proizvodnja_kwh: float = 0.0,
+    meritve_15min: bool = True,
+) -> Dict:
+    """
+    Prejemnik v souporabi.
+
+    Prevzem iz omrežja G = poraba − lastna proizvodnja (če > 0).
+    Obračunska količina ENERGIJE = max(G − prejeto, 0).
+    Omrežnina, trošarina in prispevki ostanejo na CELOTNEM G.
+    Neizrabljeni del prejete energije propade (ni dobropisa, ni prenosa).
+    """
+    pravila = pravila or Pravila.ob_datumu(v_lokalni_cas(utc_date).date())
+    ctx = _kontekst(utc_date, interval_minutes, pravila)
+
+    prevzem = max(total_consumed_kwh - lastna_proizvodnja_kwh, 0.0)
+    izrabljeno = min(prevzem, prejeto_kwh)
+    neizrabljeno = prejeto_kwh - izrabljeno
+    od_dobavitelja = prevzem - izrabljeno
+
+    cena = _cena_prevzema(paket, ctx, market_price_mwh, meritve_15min)
+    placano = prejeto_kwh if placilo_za_neizrabljeno else izrabljeno
+
+    post = {
+        "energija": od_dobavitelja * cena,
+        "energija_souporaba": placano * cena_souporabe_eur_kwh,
+        # omrežnina in dajatve od CELOTNEGA prevzema iz omrežja
+        "omreznina_energija": prevzem * pravila.omreznina.energija[ctx["blok"]],
+    }
+    post.update(_dajatve(prevzem))
+
+    return _rezultat(
+        ctx, prevzem, post,
+        prejeto_kwh=prejeto_kwh,
+        izrabljeno_souporaba_kwh=izrabljeno,
+        neizrabljeno_souporaba_kwh=neizrabljeno,
+        cena_energije_eur_kwh=cena,
+    )
+
+
+def obracun_souporabe(
+    udelezenci: Dict[str, Dict],
+    podatki: Sequence[Dict],
+    leto: int, mesec: int, *,
+    storitev: StoritevSouporabe,
+    pravila: Optional[Pravila] = None,
+    cena_souporabe_eur_kwh: float = 0.0,
+    placilo_za_neizrabljeno: bool = True,
+    strogo: bool = True,
+) -> Dict[str, Racun]:
+    """
+    udelezenci: {ime: {"gospodinjstvo": Gospodinjstvo, "paket": Paket,
+                       "delitev": {ime_prejemnika: delez_med_prejemniki}}}
+                `delitev` je obvezna le pri oddajnikih; deleži se seštejejo v 1.
+                Kolikšen del ODDANE energije gre v souporabo, pove
+                Gospodinjstvo.delez_souporabe.
+    podatki:    [{"utc_date": ..., "interval_minutes": ...,
+                  "market_price_mwh": ...,
+                  "poraba": {ime: kWh}, "proizvodnja": {ime: kWh}}, ...]
+    """
+    g_map = {i: c["gospodinjstvo"] for i, c in udelezenci.items()}
+    p_map = {i: c["paket"] for i, c in udelezenci.items()}
+    opozorila_sheme = preveri_souporabo(storitev, g_map, p_map, strogo=strogo)
+
+    obracuni = {i: MesecniObracun(leto, mesec, g_map[i], p_map[i], pravila,
+                                  strogo=strogo)
+                for i in udelezenci}
+    for i, o in obracuni.items():
+        o.opozorila.extend(opozorila_sheme)
+        nad = storitev.nadomestilo(g_map[i].vloga_souporaba)
+        if nad:
+            o._post["nadomestilo_souporaba"] = nad
+
+    if storitev.cena_omejena_na_trzno:
+        for i, o in obracuni.items():
+            if cena_souporabe_eur_kwh > max(p_map[i].et, p_map[i].vt,
+                                            p_map[i].osnovna, 0.0) > 0:
+                o.opozorila.append(
+                    f"Cena souporabe {cena_souporabe_eur_kwh:.5f} EUR/kWh presega "
+                    f"tržno ceno paketa — {storitev.organizator} tega ne dovoli.")
+
+    for row in podatki:
+        poraba = row["poraba"]
+        proizvodnja = row.get("proizvodnja", {})
+        ts, im = row["utc_date"], row.get("interval_minutes", 15)
+        cena_mwh = row["market_price_mwh"]
+
+        # 1) koliko vsak oddajnik prenese in komu
+        prejeto: Dict[str, float] = defaultdict(float)
+        preneseno: Dict[str, float] = {}
+        for i, g in g_map.items():
+            if g.vloga_souporaba not in (Vloga.ODDAJNIK, Vloga.OBOJE):
+                continue
+            presezek = max(proizvodnja.get(i, 0.0) - poraba.get(i, 0.0), 0.0)
+            deljeno = presezek * g.delez_souporabe
+            preneseno[i] = deljeno
+            delitev = udelezenci[i].get("delitev", {})
+            s = sum(delitev.values())
+            if s <= 0:
+                continue
+            for prej, w in delitev.items():
+                prejeto[prej] += deljeno * w / s
+
+        # 2) obračun po udeležencih
+        for i, g in g_map.items():
+            if g.vloga_souporaba in (Vloga.ODDAJNIK, Vloga.OBOJE):
+                r = souporaba_oddajnik(
+                    cena_mwh, poraba.get(i, 0.0), ts, im,
+                    total_produced_kwh=proizvodnja.get(i, 0.0),
+                    delez_souporabe=g.delez_souporabe,
+                    paket=p_map[i], pravila=obracuni[i].pravila,
+                    cena_souporabe_eur_kwh=cena_souporabe_eur_kwh,
+                    placilo_za_neizrabljeno=placilo_za_neizrabljeno,
+                    meritve_15min=g.meritve_15min)
+            else:
+                r = souporaba_prejemnik(
+                    cena_mwh, poraba.get(i, 0.0), ts, im,
+                    prejeto_kwh=prejeto.get(i, 0.0),
+                    paket=p_map[i], pravila=obracuni[i].pravila,
+                    cena_souporabe_eur_kwh=cena_souporabe_eur_kwh,
+                    placilo_za_neizrabljeno=placilo_za_neizrabljeno,
+                    lastna_proizvodnja_kwh=proizvodnja.get(i, 0.0),
+                    meritve_15min=g.meritve_15min)
+            obracuni[i].dodaj(r)
+
+    return {i: o.zakljuci() for i, o in obracuni.items()}

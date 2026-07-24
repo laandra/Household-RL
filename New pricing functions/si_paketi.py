@@ -57,6 +57,14 @@ class Shema(str, Enum):
     NET_METERING = "net_metering"    # soglasje do 31. 12. 2023, letno netiranje
 
 
+class Vloga(str, Enum):
+    """Vloga merilnega mesta v souporabi električne energije (ZOEE)."""
+    NI = "ni"                        # ni vključeno v souporabo
+    ODDAJNIK = "oddajnik"            # deli presežke
+    PREJEMNIK = "prejemnik"          # prejema deljeno energijo
+    OBOJE = "oboje"                  # isto MM je lahko oddajnik in prejemnik
+
+
 class NezdruzljivPaket(ValueError):
     """Paket ni združljiv s konfiguracijo gospodinjstva."""
 
@@ -72,6 +80,8 @@ class Gospodinjstvo:
     meritve_15min: bool = True
     eko_racun: bool = True            # elektronski račun -> EKO popust
     znacilni_primer: int = 2          # 1–10, za omrežnino deljene energije
+    vloga_souporaba: Vloga = Vloga.NI
+    delez_souporabe: float = 0.0      # delež ODDANE energije, namenjen souporabi
 
     def __post_init__(self):
         if self.ima_pv and self.shema_samooskrbe is Shema.BREZ:
@@ -86,6 +96,24 @@ class Gospodinjstvo:
         if self.skupnostna and not self.ima_pv:
             raise ValueError(
                 f"{self.ime}: skupnostna=True zahteva vključitev v samooskrbo."
+            )
+        # --- souporaba (ZOEE) ---
+        if self.vloga_souporaba in (Vloga.ODDAJNIK, Vloga.OBOJE) and not self.ima_pv:
+            raise ValueError(
+                f"{self.ime}: oddajnik v souporabi mora imeti proizvodno napravo "
+                f"na OVE (ima_pv=True)."
+            )
+        if (self.vloga_souporaba in (Vloga.PREJEMNIK, Vloga.OBOJE)
+                and self.shema_samooskrbe is Shema.NET_METERING):
+            raise ValueError(
+                f"{self.ime}: odjemalec v stari shemi samooskrbe z letnim "
+                f"netiranjem (NET metering) NE more biti prejemnik v souporabi. "
+                f"Kot oddajnik lahko sodeluje."
+            )
+        if not (0.0 <= self.delez_souporabe <= 1.0):
+            raise ValueError(
+                f"{self.ime}: delez_souporabe mora biti med 0 in 1, "
+                f"je {self.delez_souporabe}."
             )
 
 
@@ -426,3 +454,177 @@ def zdruzljivi_paketi(g: Gospodinjstvo,
         except NezdruzljivPaket:
             pass
     return out
+
+
+# ===========================================================================
+# SOUPORABA ELEKTRIČNE ENERGIJE (ZOEE)
+# ===========================================================================
+"""
+Souporaba ni isto kot skupnostna samooskrba. Ključne razlike (viri [S1]–[S4]):
+
+  1. Deli se ODDANA energija (presežek po lastni rabi), po 15-min intervalih.
+     Delež se nanaša na oddano energijo, NE na celotno proizvodnjo in NE na
+     letni presežek.
+  2. Souporaba zniža SAMO obračunsko količino energije pri prejemniku.
+     Omrežnina, prispevki in trošarina se pri prejemniku še naprej obračunajo
+     od CELOTNE energije, prevzete iz omrežja. (Pri skupnostni samooskrbi se
+     za deljeno energijo uporabi znižana distribucijska postavka — glej
+     `energija_skupnost` v si_tarife.py.)
+  3. Neizrabljena deljena energija se NE prenese v naslednji interval in ne
+     ustvari dobropisa — pripade dobavitelju prejemnika.
+  4. Odjemalci v stari shemi (letni NET metering) so lahko oddajniki,
+     NE morejo pa biti prejemniki.
+  5. Lokacija ni omejitev; udeleženci so lahko pri različnih dobaviteljih
+     (razen če organizator to omejuje).
+  6. Cena med udeležencema ni zakonsko določena (lahko 0), po GEN-I pa
+     ne sme presegati tržno veljavne cene električne energije.
+  7. Organizator (dobavitelj, agregator) zaračuna mesečno nadomestilo na
+     merilno mesto.
+
+VIRI:
+ [S1] Petrol: https://www.petrol.si/znanje-in-podpora/2026/clanki/souporaba-elektricne-energije-kako-deliti-soncno-energijo.html
+ [S2] Petrol cenik storitve: https://www.petrol.si/binaries/content/assets/www/2026/dokumenti/ee/cenik-storitev-souporabe-elektricne-energije-od-9.-06.-2026.pdf
+ [S3] GEN-I: https://gen-i.si/dom/trajnostne-resitve/souporaba-energije/
+ [S4] GEN-I cenik storitve: https://www.gen-i.si/media/nmtipmxa/cenik-storitve-souporaba-elektri%c4%8dne-energije-gos_v2.pdf
+"""
+
+
+@dataclass(frozen=True)
+class StoritevSouporabe:
+    """Ponudba organizatorja souporabe. Zneski brez DDV, EUR/merilno mesto/mesec."""
+    id: str
+    organizator: str
+    ime: str
+    vir: str
+    velja_od: dt.date
+    nadomestilo_oddajnik: float = 0.0
+    nadomestilo_prejemnik: float = 0.0
+    zahteva_istega_dobavitelja: bool = False
+    cena_omejena_na_trzno: bool = False
+    opombe: str = ""
+
+    def nadomestilo(self, vloga: Vloga) -> float:
+        if vloga is Vloga.ODDAJNIK:
+            return self.nadomestilo_oddajnik
+        if vloga is Vloga.PREJEMNIK:
+            return self.nadomestilo_prejemnik
+        if vloga is Vloga.OBOJE:
+            return self.nadomestilo_oddajnik + self.nadomestilo_prejemnik
+        return 0.0
+
+
+STORITVE_SOUPORABE: Dict[str, StoritevSouporabe] = {}
+
+
+def _regs(s: StoritevSouporabe) -> StoritevSouporabe:
+    STORITVE_SOUPORABE[s.id] = s
+    return s
+
+
+_regs(StoritevSouporabe(
+    id="BREZ_ORGANIZATORJA", organizator="—",
+    ime="Samoorganizirana souporaba prek portala Moj Elektro",
+    vir="[S1]", velja_od=dt.date(2026, 1, 1),
+    opombe="Oddajnik in prejemnik se registrirata sama; dobavitelj je dolžan "
+           "upoštevati količine souporabe brez dodatnega plačila.",
+))
+
+_regs(StoritevSouporabe(
+    id="GENI_SOUPORABA", organizator="GEN-I", ime="Souporaba energije",
+    vir="[S4]", velja_od=dt.date(2026, 7, 13),
+    nadomestilo_oddajnik=4.99, nadomestilo_prejemnik=0.99,
+    zahteva_istega_dobavitelja=True, cena_omejena_na_trzno=True,
+    opombe="GEN-I organizira souporabo le med lastnimi odjemalci. "
+           "Cena souporabe ne sme presegati tržno veljavne cene energije.",
+))
+
+_regs(StoritevSouporabe(
+    id="PETROL_SOUPORABA", organizator="Petrol", ime="Storitev souporabe",
+    vir="[S2]", velja_od=dt.date(2026, 6, 9),
+    nadomestilo_oddajnik=4.98, nadomestilo_prejemnik=4.98,
+    opombe="Enotno nadomestilo 4,98 EUR za VSAKO merilno mesto v souporabi, "
+           "ne glede na vlogo in ne glede na dejansko trajanje v mesecu.",
+))
+
+
+def preveri_souporabo(storitev: StoritevSouporabe, udelezenci: Dict[str, "Gospodinjstvo"],
+                      paketi: Optional[Dict[str, Paket]] = None,
+                      strogo: bool = True) -> List[str]:
+    """Preveri konfiguracijo sheme souporabe."""
+    napake, opozorila = [], []
+
+    oddajniki = [i for i, g in udelezenci.items()
+                 if g.vloga_souporaba in (Vloga.ODDAJNIK, Vloga.OBOJE)]
+    prejemniki = [i for i, g in udelezenci.items()
+                  if g.vloga_souporaba in (Vloga.PREJEMNIK, Vloga.OBOJE)]
+
+    if not oddajniki:
+        napake.append("Shema souporabe nima nobenega oddajnika.")
+    if not prejemniki:
+        napake.append("Shema souporabe nima nobenega prejemnika.")
+
+    for ime in prejemniki:
+        if udelezenci[ime].shema_samooskrbe is Shema.NET_METERING:
+            napake.append(
+                f"{ime} je v letnem NET meteringu in ne more biti prejemnik "
+                f"v souporabi (lahko pa je oddajnik).")
+
+    for ime in oddajniki:
+        g = udelezenci[ime]
+        if g.delez_souporabe <= 0:
+            opozorila.append(f"{ime} je oddajnik z deležem 0 % — nič se ne deli.")
+        if g.shema_samooskrbe is Shema.NET_METERING and g.delez_souporabe > 0:
+            opozorila.append(
+                f"{ime} je v letnem NET meteringu: energija, oddana v souporabo, "
+                f"se odšteje od letne 'zaloge' ne glede na to, ali jo prejemnik "
+                f"porabi. Previsok delež ({g.delez_souporabe:.0%}) povzroči "
+                f"doplačilo ob letnem obračunu.")
+
+    if storitev.zahteva_istega_dobavitelja and paketi:
+        dobavitelji = {p.dobavitelj for p in paketi.values()}
+        if len(dobavitelji) > 1:
+            napake.append(
+                f"{storitev.organizator} organizira souporabo le med lastnimi "
+                f"odjemalci, med udeleženci pa so: {', '.join(sorted(dobavitelji))}.")
+
+    if napake and strogo:
+        raise NezdruzljivPaket(" | ".join(napake))
+    return napake + opozorila
+
+
+# ===========================================================================
+# ANALIZA PODVOJENIH / ENAKIH PONUDB
+# ===========================================================================
+_CENOVNA_POLJA = (
+    "tip_cene", "tip_odkupa", "vt", "mt", "et",
+    "soncna_ns", "soncna_vs", "osnovna", "konicna",
+    "pribitek_odjem", "cap_sipx", "cap_mesecni",
+    "odkup_fiksni", "odkup_soncna_ns", "odkup_soncna_vs",
+    "odkup_osnovna", "odkup_konicna", "pribitek_oddaja",
+)
+_PREVZEM_POLJA = ("tip_cene", "vt", "mt", "et",
+                  "soncna_ns", "soncna_vs", "osnovna", "konicna",
+                  "pribitek_odjem", "cap_sipx", "cap_mesecni")
+
+
+def _kljuc(p: Paket, polja) -> tuple:
+    return tuple(getattr(p, f) for f in polja)
+
+
+def najdi_enake_ponudbe(paketi: Optional[Dict[str, Paket]] = None) -> Dict[str, List]:
+    """
+    Poišče pakete z identičnimi cenami.
+      'popolnoma_enaki' — enake vse cenovne postavke IN mesečno nadomestilo
+      'enak_prevzem'    — enake cene prevzema, razlika je v odkupu/nadomestilu
+    """
+    paketi = paketi or PAKETI
+    popolni, prevzem = {}, {}
+    for p in paketi.values():
+        popolni.setdefault(_kljuc(p, _CENOVNA_POLJA)
+                           + (p.mesecno_nadomestilo, p.mesecno_nadomestilo_eko),
+                           []).append(p)
+        prevzem.setdefault(_kljuc(p, _PREVZEM_POLJA), []).append(p)
+    return {
+        "popolnoma_enaki": [v for v in popolni.values() if len(v) > 1],
+        "enak_prevzem": [v for v in prevzem.values() if len(v) > 1],
+    }
