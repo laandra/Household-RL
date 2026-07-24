@@ -90,6 +90,10 @@ class HouseholdEnvironment(gym.Env):
         faktor_n2=1.0,
         faktor_n3=1.0,
         median_window_days=30,
+        pricing_scheme="si_samooskrba", #"aus_base",
+        pricing_compare_all=False,
+        pricing_include_raw=False,
+        pricing_options=None,
     ):
         self.dataset = dataset
         self.dataset_norm = dataset_norm if dataset_norm is not None else dataset
@@ -120,6 +124,10 @@ class HouseholdEnvironment(gym.Env):
         self.faktor_n1 = float(faktor_n1)
         self.faktor_n2 = float(faktor_n2)
         self.faktor_n3 = float(faktor_n3)
+        self.pricing_scheme = str(pricing_scheme)
+        self.pricing_compare_all = bool(pricing_compare_all)
+        self.pricing_include_raw = bool(pricing_include_raw)
+        self.pricing_options = dict(pricing_options or {})
 
         self.data_length = len(self.dataset)
         if self.data_length == 0:
@@ -478,6 +486,10 @@ class HouseholdEnvironment(gym.Env):
             kupljena_elektrika,
             utc_date = self.dataset.index[s.Korak],
             interval_minutes = 1440.0 / self.korakov_na_dan,
+            scheme=self.pricing_scheme,
+            compare_all=self.pricing_compare_all,
+            include_raw=self.pricing_include_raw,
+            **self.pricing_options,
         )
         konstantno_placilo = float(_price_result["constant_price_aud"])
         placilo_zdaj = float(_price_result["variable_price_aud"])

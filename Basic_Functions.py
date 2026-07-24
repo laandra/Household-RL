@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 from enum import Enum
 
+from Pricing_Functions import calculate_interval_price
+
 ### Helper Functions
 def BatMaxPraTrenutno(s, BatUcinkovitost, BatMaxPraznjenje):
     """Vrne maksimalno energijo ki jo lahko baterija odda v tem koraku"""
