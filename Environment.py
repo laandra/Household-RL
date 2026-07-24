@@ -93,6 +93,7 @@ class HouseholdEnvironment(gym.Env):
         pricing_scheme="si_samooskrba", #"aus_base",
         pricing_compare_all=False,
         pricing_include_raw=False,
+        pricing_reference_year=2026,
         pricing_options=None,
     ):
         self.dataset = dataset
@@ -127,7 +128,14 @@ class HouseholdEnvironment(gym.Env):
         self.pricing_scheme = str(pricing_scheme)
         self.pricing_compare_all = bool(pricing_compare_all)
         self.pricing_include_raw = bool(pricing_include_raw)
-        self.pricing_options = dict(pricing_options or {})
+        default_pricing_options = {
+            "pricing_mode": "dinamicni",
+            "buyback_mode": "dinamicni",
+        }
+        self.pricing_options = dict(pricing_options or default_pricing_options)
+        self.pricing_reference_year = None if pricing_reference_year is None else int(pricing_reference_year)
+        if self.pricing_reference_year is not None:
+            self.pricing_options["pricing_reference_year"] = self.pricing_reference_year
 
         self.data_length = len(self.dataset)
         if self.data_length == 0:
