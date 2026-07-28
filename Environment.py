@@ -91,14 +91,17 @@ class HouseholdEnvironment(gym.Env):
         bat_max_polnjenje=1.5,
         bat_max_praznjenje=1.5,
         faktor_n1=0.0,
-        faktor_n2=1.0,
+        faktor_n2=0.0,
         faktor_n3=1.0,
         median_window_days=30,
         pricing_scheme="si_samooskrba", #"aus_base",
         pricing_compare_all=False,
         pricing_include_raw=False,
         pricing_reference_year=2026,
-        pricing_options=None,
+        pricing_options={
+            "pricing_mode": "dinamicni",
+            "buyback_mode": "dinamicni",
+        },
         contracted_power_kw=None,
         peak_reset_months=None,
         pricing_validate_pv=True,
@@ -127,19 +130,23 @@ class HouseholdEnvironment(gym.Env):
 
         self.bat_kapaciteta = float(bat_kapaciteta)
         self.bat_ucinkovitost = float(bat_ucinkovitost)
+        if self.bat_ucinkovitost <= 0.0 or self.bat_ucinkovitost > 1.0:
+            raise ValueError("bat_ucinkovitost must be in (0.0, 1.0]")
+        
         self.bat_max_polnjenje = float(bat_max_polnjenje)
         self.bat_max_praznjenje = float(bat_max_praznjenje)
         self.faktor_n1 = float(faktor_n1)
         self.faktor_n2 = float(faktor_n2)
         self.faktor_n3 = float(faktor_n3)
         self.pricing_scheme = str(pricing_scheme)
+        if self.pricing_scheme not in {"si_dobava", "si_samooskrba", "aus_base"}:
+            raise ValueError("pricing_scheme must be 'si_dobava', 'si_samooskrba', or 'aus_base'")
         self.pricing_compare_all = bool(pricing_compare_all)
         self.pricing_include_raw = bool(pricing_include_raw)
-        default_pricing_options = {
-            "pricing_mode": "dinamicni",
-            "buyback_mode": "dinamicni",
-        }
-        self.pricing_options = dict(pricing_options or default_pricing_options)
+        self.pricing_options = pricing_options
+        if self.pricing_options not in (None, {}, {"pricing_mode": "dinamicni", "buyback_mode": "dinamicni"}):
+            raise ValueError("pricing_options must be None, empty dict, or {'pricing_mode': 'dinamicni', 'buyback_mode': 'dinamicni'}")
+        
         self.pricing_reference_year = None if pricing_reference_year is None else int(pricing_reference_year)
         if self.pricing_reference_year is not None:
             self.pricing_options["pricing_reference_year"] = self.pricing_reference_year
