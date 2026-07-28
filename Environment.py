@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 import gymnasium as gym
@@ -11,10 +12,13 @@ from Basic_Functions import (
 )
 
 from Pricing_Functions import (
+    InvoiceBuilder,
     calculate_interval_price,
     resolve_block_for_datetime,
     resolve_reset_window_id,
 )
+
+_DEFAULT_INVOICE_OUTPUT_DIR = Path(__file__).resolve().parent / "Resoults" / "Invoices"
 
 
 class _StateDQN:
@@ -98,13 +102,15 @@ class HouseholdEnvironment(gym.Env):
         pricing_compare_all=False,
         pricing_include_raw=False,
         pricing_reference_year=2026,
-        pricing_options={
-            "pricing_mode": "dinamicni",
-            "buyback_mode": "dinamicni",
-        },
+        pricing_options=None,
         contracted_power_kw=None,
         peak_reset_months=None,
         pricing_validate_pv=True,
+        generate_monthly_invoice=False,
+        generate_period_invoice=False,
+        invoice_eko_racun=True,
+        invoice_output_dir=None,
+        invoice_run_label=None,
     ):
         self.dataset = dataset
         self.dataset_norm = dataset_norm if dataset_norm is not None else dataset
@@ -143,13 +149,43 @@ class HouseholdEnvironment(gym.Env):
             raise ValueError("pricing_scheme must be 'si_dobava', 'si_samooskrba', or 'aus_base'")
         self.pricing_compare_all = bool(pricing_compare_all)
         self.pricing_include_raw = bool(pricing_include_raw)
-        self.pricing_options = pricing_options
-        if self.pricing_options not in (None, {}, {"pricing_mode": "dinamicni", "buyback_mode": "dinamicni"}):
+        if pricing_options is None:
+            # Fresh dict per instance -- a mutable default argument here would be
+            # mutated in place below (pricing_reference_year) and shared/corrupted
+            # across every subsequent construction that also omits pricing_options.
+            self.pricing_options = {"pricing_mode": "dinamicni", "buyback_mode": "dinamicni"}
+        elif pricing_options in ({}, {"pricing_mode": "dinamicni", "buyback_mode": "dinamicni"}):
+            self.pricing_options = dict(pricing_options)
+        else:
             raise ValueError("pricing_options must be None, empty dict, or {'pricing_mode': 'dinamicni', 'buyback_mode': 'dinamicni'}")
         
         self.pricing_reference_year = None if pricing_reference_year is None else int(pricing_reference_year)
         if self.pricing_reference_year is not None:
             self.pricing_options["pricing_reference_year"] = self.pricing_reference_year
+
+        # --- Invoice generation (monthly / whole-period line-item bills) -----------
+        self.generate_monthly_invoice = bool(generate_monthly_invoice)
+        self.generate_period_invoice = bool(generate_period_invoice)
+        self._invoicing_enabled = self.generate_monthly_invoice or self.generate_period_invoice
+        if self._invoicing_enabled:
+            if self.pricing_scheme not in ("si_dobava", "si_samooskrba"):
+                raise ValueError(
+                    "Invoice generation requires pricing_scheme 'si_dobava' or "
+                    "'si_samooskrba' (no SI regulatory invoice exists for 'aus_base')."
+                )
+            if self.reset_mode != "deterministic":
+                raise ValueError(
+                    "Invoice generation requires reset_mode='deterministic' — invoicing "
+                    "only makes sense over a single chronological pass; random/sequential "
+                    "resets would interleave or overwrite invoice state across unrelated "
+                    "episodes."
+                )
+        self.invoice_eko_racun = bool(invoice_eko_racun)
+        self.invoice_output_dir = (
+            Path(invoice_output_dir) if invoice_output_dir is not None else _DEFAULT_INVOICE_OUTPUT_DIR
+        )
+        self.invoice_run_label = invoice_run_label
+        self._invoice_builder = None
 
         self.data_length = len(self.dataset)
         if self.data_length == 0:
@@ -507,8 +543,36 @@ class HouseholdEnvironment(gym.Env):
             info["reward_components"] = reward_components
         return info
 
+    def _resolve_invoice_run_label(self):
+        if self.invoice_run_label:
+            return str(self.invoice_run_label)
+        return str(self.pricing_scheme)
+
+    def _invoice_period_label(self, start_idx, end_idx):
+        end_idx = min(end_idx, self.data_length - 1)
+        start_ts = self.dataset.index[start_idx]
+        end_ts = self.dataset.index[end_idx]
+        return f"{start_ts:%Y-%m-%d}_{end_ts:%Y-%m-%d}"
+
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed)
+
+        if self._invoicing_enabled:
+            if self._invoice_builder is not None:
+                # Defensive: a caller resetting before hitting terminated/truncated
+                # would otherwise silently drop the previous episode's invoice.
+                self._invoice_builder.finalize()
+            self._invoice_builder = InvoiceBuilder(
+                dogovorjena_moc=self.dogovorjena_moc,
+                pricing_scheme=self.pricing_scheme,
+                eko_racun=self.invoice_eko_racun,
+                interval_minutes=1440.0 / self.korakov_na_dan,
+                output_dir=self.invoice_output_dir,
+                run_label=self._resolve_invoice_run_label(),
+                write_monthly=self.generate_monthly_invoice,
+                write_period=self.generate_period_invoice,
+                pricing_reference_year=self.pricing_reference_year,
+            )
 
         self._episode_start = self._resolve_start_index(options)
         self._episode_end_exclusive = min(
@@ -541,6 +605,10 @@ class HouseholdEnvironment(gym.Env):
 
         if next_idx >= self.data_length:
             obs = self._build_observation(s.Korak, s.Baterija_norm)
+            if self._invoicing_enabled:
+                self._invoice_builder.finalize(
+                    period_label=self._invoice_period_label(self._episode_start, s.Korak)
+                )
             return obs, 0.0, True, False, self._build_info(s, action_int=action_int)
 
         ostala_energija = PaneliOdvec(s.Generiranje, s.Poraba)
@@ -637,7 +705,7 @@ class HouseholdEnvironment(gym.Env):
             interval_minutes = 1440.0 / self.korakov_na_dan,
             scheme=self.pricing_scheme,
             compare_all=self.pricing_compare_all,
-            include_raw=self.pricing_include_raw,
+            include_raw=(self.pricing_include_raw or self._invoicing_enabled),
             dogovorjena_moc=self.dogovorjena_moc,
             prev_peak_kw=self._peak_kw,
             **self.pricing_options,
@@ -645,6 +713,8 @@ class HouseholdEnvironment(gym.Env):
         konstantno_placilo = float(_price_result["constant_price_aud"])
         placilo_zdaj = float(_price_result["variable_price_aud"])
         self._peak_kw = dict(_price_result["new_peak_kw"])
+        if self._invoicing_enabled:
+            self._invoice_builder.add_interval(_price_result)
 
         new_battery = float(np.clip(s.Baterija + sprememba_baterije, 0.0, self.bat_kapaciteta))
         if s.Baterija + sprememba_baterije < -1e-8 or s.Baterija + sprememba_baterije > self.bat_kapaciteta + 1e-8:
@@ -710,6 +780,11 @@ class HouseholdEnvironment(gym.Env):
             },
         )
         info["peak_kw"] = dict(self._peak_kw)
+
+        if self._invoicing_enabled and (terminated or truncated):
+            self._invoice_builder.finalize(
+                period_label=self._invoice_period_label(self._episode_start, next_s.Korak)
+            )
 
         return obs, float(reward), bool(terminated), bool(truncated), info
 
