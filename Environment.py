@@ -10,7 +10,11 @@ from Basic_Functions import (
     PaneliOdvec,
 )
 
-from Pricing_Functions import calculate_interval_price
+from Pricing_Functions import (
+    calculate_interval_price,
+    resolve_block_for_datetime,
+    resolve_reset_window_id,
+)
 
 
 class _StateDQN:
@@ -95,6 +99,9 @@ class HouseholdEnvironment(gym.Env):
         pricing_include_raw=False,
         pricing_reference_year=2026,
         pricing_options=None,
+        contracted_power_kw=None,
+        peak_reset_months=None,
+        pricing_validate_pv=True,
     ):
         self.dataset = dataset
         self.dataset_norm = dataset_norm if dataset_norm is not None else dataset
@@ -144,6 +151,47 @@ class HouseholdEnvironment(gym.Env):
         self.arr_SMP = self.dataset["SMP"].to_numpy(dtype=np.float64)
         self.arr_Gen = self.dataset["Energy_Generation"].to_numpy(dtype=np.float64)
         self.arr_Con = self.dataset["Energy_Consumption"].to_numpy(dtype=np.float64)
+
+        # --- PV presence + pricing_scheme validation -------------------------------
+        self.pricing_warnings = []
+        self._has_pv = bool(np.nanmax(self.arr_Gen) > 0.0) if self.data_length > 0 else False
+
+        if self.pricing_scheme == "si_dobava" and self._has_pv:
+            msg = (
+                "pricing_scheme='si_dobava' assumes no on-site production, but "
+                "Energy_Generation has nonzero values. si_dobava has no export-netting "
+                "logic and would mis-tax exported energy (full retail rate + network "
+                "charges + VAT applied to exported kWh). Use pricing_scheme="
+                "'si_samooskrba', or set pricing_validate_pv=False to bypass this check."
+            )
+            if pricing_validate_pv:
+                raise ValueError(msg)
+            self.pricing_warnings.append(msg)
+        elif self.pricing_scheme == "si_samooskrba" and not self._has_pv:
+            self.pricing_warnings.append(
+                "pricing_scheme='si_samooskrba' selected but Energy_Generation is "
+                "always zero; self-supply netting has no effect (numerically "
+                "equivalent to si_dobava)."
+            )
+
+        # --- Contracted power (dogovorjena_moc) + peak-ratchet config --------------
+        self.peak_reset_months = None if peak_reset_months is None else int(peak_reset_months)
+        if contracted_power_kw is None:
+            self.dogovorjena_moc = self._default_contracted_power_kw()
+        elif isinstance(contracted_power_kw, (int, float)):
+            self.dogovorjena_moc = {b: float(contracted_power_kw) for b in range(1, 6)}
+        else:
+            self.dogovorjena_moc = {b: float(contracted_power_kw.get(b, 0.0)) for b in range(1, 6)}
+
+        self._blok_arr = None
+        self._window_id_arr = None
+        self._peak_seed_history = None
+        if self.pricing_scheme in ("si_dobava", "si_samooskrba") and self.data_length > 0:
+            self._blok_arr, self._window_id_arr, self._peak_seed_history = (
+                self._precompute_peak_seed_history()
+            )
+        self._peak_kw = {b: 0.0 for b in range(1, 6)}
+        self._peak_window_id = 0
 
         self.arr_SMP_norm = self.dataset_norm["SMP"].to_numpy(dtype=np.float64)
         self.arr_Gen_norm = self.dataset_norm["Energy_Generation"].to_numpy(dtype=np.float64)
@@ -195,6 +243,80 @@ class HouseholdEnvironment(gym.Env):
             shape=(state_dim,),
             dtype=np.float32,
         )
+
+    def _default_contracted_power_kw(self):
+        """Default dogovorjena_moc: set meaningfully BELOW the historical
+        realized peak (no-battery grid-import power), so the agent has real
+        room to improve via peak-shaving rather than starting already
+        compliant with a contract sized to its worst historical moment."""
+        hours_per_interval = (1440.0 / self.korakov_na_dan) / 60.0
+        naive_import_kwh = np.maximum(self.arr_Con - self.arr_Gen, 0.0)
+        naive_power_kw = (
+            naive_import_kwh / hours_per_interval
+            if hours_per_interval > 0
+            else naive_import_kwh
+        )
+        historical_peak_kw = float(np.max(naive_power_kw)) if naive_power_kw.size else 0.0
+        value = max(historical_peak_kw / 1.5, 1.5)
+        value = round(value * 2.0) / 2.0
+        return {b: value for b in range(1, 6)}
+
+    def _precompute_peak_seed_history(self):
+        """One-time O(n) precompute of per-row tariff block, reset-window id,
+        and a per-block running 'historical no-battery peak so far' array,
+        used to seed the ratchet peak tracker at arbitrary episode-start
+        indices (see compute_seed_peak_kw)."""
+        hours_per_interval = (1440.0 / self.korakov_na_dan) / 60.0
+        naive_import_kwh = np.maximum(self.arr_Con - self.arr_Gen, 0.0)
+        naive_power_kw = (
+            naive_import_kwh / hours_per_interval
+            if hours_per_interval > 0
+            else naive_import_kwh
+        )
+
+        block_cache = {}
+        blok_arr = np.empty(self.data_length, dtype=np.int32)
+        window_id_arr = np.empty(self.data_length, dtype=np.int64)
+        for i in range(self.data_length):
+            ts = self.dataset.index[i]
+            cache_key = (ts.year, ts.month, ts.day, ts.hour)
+            blok = block_cache.get(cache_key)
+            if blok is None:
+                blok = resolve_block_for_datetime(
+                    ts, pricing_reference_year=self.pricing_reference_year
+                )
+                block_cache[cache_key] = blok
+            blok_arr[i] = blok
+            window_id_arr[i] = resolve_reset_window_id(ts, self.peak_reset_months)
+
+        peak_seed_history = {}
+        for b in range(1, 6):
+            seed = np.zeros(self.data_length, dtype=np.float64)
+            running = 0.0
+            running_window = window_id_arr[0]
+            for i in range(self.data_length):
+                if window_id_arr[i] != running_window:
+                    running = 0.0
+                    running_window = window_id_arr[i]
+                if blok_arr[i] == b:
+                    running = max(running, float(naive_power_kw[i]))
+                seed[i] = running
+            peak_seed_history[b] = seed
+        return blok_arr, window_id_arr, peak_seed_history
+
+    def compute_seed_peak_kw(self, start_idx):
+        """Running peak state (per block) to seed an episode starting at
+        `start_idx`, derived from historical no-battery grid draw up to (but
+        not including) start_idx. Returns all-zero if peak tracking is
+        disabled for this scheme, at the very start of the dataset, or right
+        after a reset-window boundary."""
+        if self._peak_seed_history is None or start_idx <= 0:
+            return {b: 0.0 for b in range(1, 6)}
+        ref_idx = start_idx - 1
+        cur_idx = min(start_idx, self.data_length - 1)
+        if self._window_id_arr[ref_idx] != self._window_id_arr[cur_idx]:
+            return {b: 0.0 for b in range(1, 6)}
+        return {b: float(self._peak_seed_history[b][ref_idx]) for b in range(1, 6)}
 
     def _state_dim(self):
         if self.observation_mode == "compact":
@@ -393,6 +515,12 @@ class HouseholdEnvironment(gym.Env):
         self._episode_steps = 0
         self._battery = max(0.0, self.bat_kapaciteta / 2.0)
         self._cumulative_payment = 0.0
+        self._peak_kw = self.compute_seed_peak_kw(self._episode_start)
+        self._peak_window_id = (
+            int(self._window_id_arr[self._episode_start])
+            if self._window_id_arr is not None
+            else 0
+        )
 
         s0 = self._get_state_object(self._current_step, self._battery, self._cumulative_payment)
         obs = self._build_observation(s0.Korak, s0.Baterija_norm)
@@ -489,6 +617,12 @@ class HouseholdEnvironment(gym.Env):
         #else:
         #    placilo_zdaj = s.CenaEl * kupljena_elektrika * self.faktor_cenitve
             
+        if self._window_id_arr is not None:
+            current_window_id = int(self._window_id_arr[s.Korak])
+            if current_window_id != self._peak_window_id:
+                self._peak_kw = {b: 0.0 for b in range(1, 6)}
+                self._peak_window_id = current_window_id
+
         _price_result = calculate_interval_price(
             s.CenaEl,
             kupljena_elektrika,
@@ -497,10 +631,13 @@ class HouseholdEnvironment(gym.Env):
             scheme=self.pricing_scheme,
             compare_all=self.pricing_compare_all,
             include_raw=self.pricing_include_raw,
+            dogovorjena_moc=self.dogovorjena_moc,
+            prev_peak_kw=self._peak_kw,
             **self.pricing_options,
         )
         konstantno_placilo = float(_price_result["constant_price_aud"])
         placilo_zdaj = float(_price_result["variable_price_aud"])
+        self._peak_kw = dict(_price_result["new_peak_kw"])
 
         new_battery = float(np.clip(s.Baterija + sprememba_baterije, 0.0, self.bat_kapaciteta))
         if s.Baterija + sprememba_baterije < -1e-8 or s.Baterija + sprememba_baterije > self.bat_kapaciteta + 1e-8:
@@ -560,8 +697,12 @@ class HouseholdEnvironment(gym.Env):
                 "r_sprememba": float(r_sprememba),
                 "r_placilo": float(r_placilo),
                 "placilo_zdaj": float(placilo_zdaj),
+                "energy_component_eur": float(_price_result["energy_component_eur"]),
+                "power_component_eur": float(_price_result["power_component_eur"]),
+                "fixed_monthly_charge_eur": float(_price_result["fixed_monthly_charge_eur"]),
             },
         )
+        info["peak_kw"] = dict(self._peak_kw)
 
         return obs, float(reward), bool(terminated), bool(truncated), info
 

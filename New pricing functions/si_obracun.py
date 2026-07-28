@@ -99,6 +99,14 @@ class Pravila:
         return cls.ob_datumu(danes or dt.date.today(), **kw)
 
     @classmethod
+    def od_2026(cls, **kw) -> "Pravila":
+        # Časovni bloki se ne spremenijo do 1. 1. 2027 (glej si_cas.razpored_za_datum),
+        # zato je razpored še vedno "2024" — spremenijo se le tarifne postavke omrežnine.
+        return cls(omreznina=OMREZNINA_2026, razpored="2024",
+                   dajatve_datum=dt.date(2026, 1, 1),
+                   oznaka="režim od 2026 (trenutno veljavni)", **kw)
+
+    @classmethod
     def od_2027(cls, **kw) -> "Pravila":
         # Tarifne postavke za 2027 še niso objavljene -> 2026 kot približek,
         # spremeni pa se razpored blokov. Ko Agencija objavi Akt za 2027,

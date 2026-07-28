@@ -8,7 +8,6 @@ from Basic_Functions import (
     BatMaxPolTrenutno,
     BatMaxPraTrenutno,
     BaterijaSprememba,
-    calculate_interval_price,
     PaneliOdvec,
     State,
 )
@@ -115,21 +114,25 @@ class LinearFunctionSarsaAgent:
         return environment.dataset.index[safe_idx]
 
     def _calculate_interval_price(self, environment, current_info, next_info):
-        step_idx = int(current_info.get("step_idx", 0))
-        energy_flows = next_info.get("energy_flows", {})
-        total_consumed_kwh = float(
-            energy_flows.get(
-                "kupljena_elektrika",
-                float(next_info.get("consumption", 0.0)) - float(next_info.get("generation", 0.0)),
-            )
-        )
+        """Price breakdown for the step that already produced `next_info`.
 
-        return calculate_interval_price(
-            float(current_info.get("price", 0.0)),
-            total_consumed_kwh,
-            self._date_from_step(environment, step_idx),
-            interval_minutes=1440.0 / environment.korakov_na_dan,
-        )
+        Reads the values `environment.step()` already computed (via
+        `calculate_interval_price` internally, with the environment's own
+        `pricing_scheme`/`pricing_options`/`dogovorjena_moc`/running peak
+        state) instead of recomputing them here. Recomputing independently
+        requires re-deriving all of those same parameters (scheme, PV
+        contract, ratchet peak state, `pricing_reference_year` to avoid
+        looking up tariffs for the dataset's raw historical date) and risks
+        silently drifting out of sync with what was actually charged; reading
+        them from `next_info` is both simpler and always exactly consistent.
+        """
+        reward_components = next_info.get("reward_components", {})
+        return {
+            "constant_price_aud": float(reward_components.get("fixed_monthly_charge_eur", 0.0)),
+            "variable_price_aud": float(reward_components.get("placilo_zdaj", 0.0)),
+            "energy_component_eur": float(reward_components.get("energy_component_eur", 0.0)),
+            "power_component_eur": float(reward_components.get("power_component_eur", 0.0)),
+        }
 
     def get_clear_tensor(self):
         return np.zeros(
