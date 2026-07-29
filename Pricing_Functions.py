@@ -22,6 +22,8 @@ resolve_block_for_datetime = _MODULE.resolve_block_for_datetime
 resolve_reset_window_id = _MODULE.resolve_reset_window_id
 compute_prorated_fixed_charge_eur = _MODULE.compute_prorated_fixed_charge_eur
 
+PRIVZETO_REFERENCNO_LETO = _MODULE.PRIVZETO_REFERENCNO_LETO
+
 SUPPORTED_SCHEMES = _MODULE.SUPPORTED_SCHEMES
 SKIPPED_MULTI_USER_SCHEMES = _MODULE.SKIPPED_MULTI_USER_SCHEMES
 SCHEME_AUS_BASE = _MODULE.SCHEME_AUS_BASE

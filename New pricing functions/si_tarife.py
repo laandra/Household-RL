@@ -156,9 +156,25 @@ OMREZNINA_2026 = Omreznina(
 
 OMREZNINA_OBDOBJA = [OMREZNINA_2025, OMREZNINA_2026]
 
+# Privzeti regulativni režim za podatke, ki nosijo datume izven objavljenih
+# obdobij (npr. Ausgrid dataseti 2010–2013): obračuna se po letu 2026.
+PRIVZETO_REFERENCNO_LETO = 2026
+PRIVZETA_OMREZNINA = OMREZNINA_2026
+
+
+def ima_tarifne_postavke(d: dt.date) -> bool:
+    """True, če so za dani datum objavljene tarifne postavke omrežnine."""
+    return any(o.velja_od <= d <= o.velja_do for o in OMREZNINA_OBDOBJA)
+
 
 def omreznina_za_datum(d: dt.date) -> Omreznina:
-    """Izbere veljavne tarifne postavke omrežnine za dani datum."""
+    """Izbere veljavne tarifne postavke omrežnine za dani datum.
+
+    Strogo: za datume izven objavljenih obdobij sproži ValueError. Kdor želi
+    star dataset obračunati po danes veljavnih postavkah, naj uporabi
+    `si_obracun.Pravila.za_leto(...)` / `Pravila.privzeta(...)`, ki padeta
+    nazaj na `PRIVZETO_REFERENCNO_LETO`.
+    """
     for o in OMREZNINA_OBDOBJA:
         if o.velja_od <= d <= o.velja_do:
             return o

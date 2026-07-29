@@ -12,6 +12,7 @@ from Basic_Functions import (
 )
 
 from Pricing_Functions import (
+    PRIVZETO_REFERENCNO_LETO,
     InvoiceBuilder,
     calculate_interval_price,
     resolve_block_for_datetime,
@@ -158,10 +159,17 @@ class HouseholdEnvironment(gym.Env):
             self.pricing_options = dict(pricing_options)
         else:
             raise ValueError("pricing_options must be None, empty dict, or {'pricing_mode': 'dinamicni', 'buyback_mode': 'dinamicni'}")
-        
-        self.pricing_reference_year = None if pricing_reference_year is None else int(pricing_reference_year)
-        if self.pricing_reference_year is not None:
-            self.pricing_options["pricing_reference_year"] = self.pricing_reference_year
+
+        # Ausgrid timestamps (2010-2013) have no published SI tariff rates, so
+        # leaving this unset would make pricing fall back to the 2026 regime
+        # anyway (see Pricing_Functions._resolve_pravila); pin it explicitly so
+        # the RL environment, the MILP benchmark and the invoice builder all
+        # agree on the same year.
+        self.pricing_reference_year = (
+            PRIVZETO_REFERENCNO_LETO if pricing_reference_year is None
+            else int(pricing_reference_year)
+        )
+        self.pricing_options["pricing_reference_year"] = self.pricing_reference_year
 
         # --- Invoice generation (monthly / whole-period line-item bills) -----------
         self.generate_monthly_invoice = bool(generate_monthly_invoice)
