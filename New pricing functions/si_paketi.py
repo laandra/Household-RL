@@ -27,9 +27,16 @@ VIRI (preverjeno 22. 7. 2026):
  [P1] https://www.petrol.si/binaries/content/assets/www/2025/dokumenti-in-obrazci/ee/go/cenik_go-odjem_marec-2025_f1.pdf
  [P2] https://www.petrol.si/binaries/content/assets/www/2026/dokumenti/ee/akcijski-cenik-elektricne-energije-za-gospodinjske-odjemalce-fiks-2026-9.-05.-2026.pdf
  [P3] https://www.petrol.si/za-dom/energenti/samooskrba
+ [E1] https://www.elektro-energija.si/za-dom/dokumenti-in-ceniki
+      (redni cenik ZANESLJIVA OSKRBA, DINAMIČNA OSKRBA, ZANESLJIVA OSKRBA –
+       FIKSNI, E-popust, dodatek za izbiro vira energije) — preverjeno 29. 7. 2026
+ [E2] https://www.elektro-energija.si/pomoc/souporaba-energije
+      (Elektro energija v ponudbi NIMA rešitev samooskrbe; njeni odjemalci se
+       v souporabo lahko vključijo LE kot prejemniki)
 """
 from __future__ import annotations
 
+import dataclasses
 import datetime as dt
 from dataclasses import dataclass, field
 from enum import Enum
@@ -162,6 +169,9 @@ class Paket:
     dovoljene_sheme: tuple = (Shema.BREZ,)
     dovoljuje_skupnostno: bool = False
     zahteva_15min: bool = False
+    # dobavitelj podpira vlogo ODDAJNIK v souporabi (potrebna lastna proizvodnja
+    # in samooskrbni cenik); npr. Elektro energija samooskrbe ne ponuja [E2]
+    dovoljuje_oddajnika: bool = True
     opombe: str = ""
 
     def nadomestilo(self, eko: bool) -> float:
@@ -373,6 +383,73 @@ _reg(Paket(
            "je za odjemalca brez vrednosti.",
 ))
 
+# ---------------------------------------------------------- ELEKTRO ENERGIJA
+# Vsi trije gospodinjski ceniki imajo isto strukturo fiksnega dela:
+#   pavšalni strošek poslovanja − E-popust 0,81 EUR/mm/mesec (brez DDV) za
+#   račun v elektronski obliki. Zato mesecno_nadomestilo_eko = nadomestilo − 0,81.
+# Elektro energija NE ponuja samooskrbnega cenika in ne odkupuje presežkov [E2],
+# zato noben paket ne dovoljuje PV in noben ne omogoča vloge oddajnika.
+ELEN_E_POPUST = 0.81          # EUR/merilno mesto/mesec, brez DDV [E1]
+ELEN_DODATEK_VIR = 0.82       # 100 % SONCE ali 100 % VODA, EUR/mm/mesec [E1]
+
+_reg(Paket(
+    id="ELEN_ZANESLJIVA", dobavitelj="Elektro energija",
+    ime="Zanesljiva oskrba (redni cenik)",
+    vir="[E1]", velja_od=dt.date(2025, 3, 1), tip_cene=TipCene.TARIFNI,
+    vt=0.12490, mt=0.10290, et=0.11390,
+    mesecno_nadomestilo=1.99, mesecno_nadomestilo_eko=1.99 - ELEN_E_POPUST,
+    dovoljuje_oddajnika=False,
+    opombe="Brez vezave, velja do spremembe/preklica. Ne velja za oskrbo "
+           "skupnih delov večstanovanjskih stavb.",
+))
+
+_reg(Paket(
+    id="ELEN_FIKSNI", dobavitelj="Elektro energija",
+    ime="Zanesljiva oskrba – Fiksni",
+    vir="[E1]", velja_od=dt.date(2025, 10, 23), tip_cene=TipCene.TARIFNI,
+    vt=0.12990, mt=0.10790, et=0.11890,
+    # e-račun je pri tem ceniku obvezen, zato E-popust velja vedno
+    mesecno_nadomestilo=1.99 - ELEN_E_POPUST,
+    mesecno_nadomestilo_eko=1.99 - ELEN_E_POPUST,
+    dovoljuje_oddajnika=False,
+    opombe="Cena zajamčena 12 mesecev od pričetka uporabe aneksa; med vezavo "
+           "prehod na drug cenik ni mogoč. Račun se izda v elektronski obliki, "
+           "zato je E-popust vedno priznan.",
+))
+
+_reg(Paket(
+    id="ELEN_DINAMICNA", dobavitelj="Elektro energija", ime="Dinamična oskrba",
+    vir="[E1]", velja_od=dt.date(2024, 10, 2), tip_cene=TipCene.DINAMICNI,
+    pribitek_odjem=0.01199, cap_sipx=0.22000,
+    mesecno_nadomestilo=2.97, mesecno_nadomestilo_eko=2.97 - ELEN_E_POPUST,
+    dovoljuje_oddajnika=False,
+    opombe="Zamejitev 220 EUR/MWh velja na URNI indeks SIPX (povprečje "
+           "15-min poslov znotraj ure). Navzdol neomejeno. Brez vezave.",
+))
+
+
+def z_izbiro_vira(paket: Paket, vir: str = "jedrska") -> Paket:
+    """Vrne kopijo paketa z dodatkom za izbiro vira energije [E1].
+
+    Privzeti vir je brezogljična jedrska energija (0,00 EUR/mesec) — to je
+    tudi dejanski privzetek Elektro energije od 1. 1. 2021 in najcenejša
+    izbira, zato `z_izbiro_vira(p)` vrne paket nespremenjen. '100 % SONCE'
+    ali '100 % VODA' se lahko doda h kateremu koli ceniku za 0,82 EUR/merilno
+    mesto/mesec brez DDV. Na merilnem mestu je mogoče izbrati le en vir.
+    """
+    vir = vir.lower()
+    if vir in ("jedrska", "jedrski", "privzeto"):
+        return paket
+    if vir not in ("sonce", "soncni", "voda", "vodni"):
+        raise ValueError("vir mora biti 'sonce', 'voda' ali 'jedrska'")
+    oznaka = "100 % SONCE" if vir.startswith("son") else "100 % VODA"
+    return dataclasses.replace(
+        paket,
+        id=f"{paket.id}_{'SONCE' if vir.startswith('son') else 'VODA'}",
+        ime=f"{paket.ime} + {oznaka}",
+        dodatna_storitev=paket.dodatna_storitev + ELEN_DODATEK_VIR,
+    )
+
 
 # ===========================================================================
 # VALIDACIJA
@@ -431,7 +508,16 @@ def preveri_paket(paket: Paket, g: Gospodinjstvo,
             f"obračunavaš pa {datum.isoformat()} — cene so ekstrapolirane nazaj."
         )
 
-    # 7) PV brez odkupa
+    # 7) souporaba: vloga oddajnika zahteva samooskrbni cenik dobavitelja
+    if (g.vloga_souporaba in (Vloga.ODDAJNIK, Vloga.OBOJE)
+            and not paket.dovoljuje_oddajnika):
+        napake.append(
+            f"{g.ime} nastopa kot oddajnik v souporabi, {paket.dobavitelj} "
+            f"pa v ponudbi nima rešitev samooskrbe — po ceniku '{paket.ime}' "
+            f"je mogoča le vloga prejemnika."
+        )
+
+    # 8) PV brez odkupa
     if g.ima_pv and paket.tip_odkupa is TipOdkupa.NI:
         opozorila.append(
             f"Paket '{paket.ime}' ne odkupuje presežkov — oddana energija se "
@@ -545,6 +631,12 @@ _regs(StoritevSouporabe(
     opombe="Enotno nadomestilo 4,98 EUR za VSAKO merilno mesto v souporabi, "
            "ne glede na vlogo in ne glede na dejansko trajanje v mesecu.",
 ))
+
+# Elektro energija souporabe (še) ne organizira in zanjo nima objavljenega
+# cenika [E2]; njeni odjemalci sodelujejo kot PREJEMNIKI, pri čemer je shemo
+# treba registrirati samostojno ali prek organizatorja pri drugem dobavitelju
+# (udeleženci so lahko pri različnih dobaviteljih) -> BREZ_ORGANIZATORJA.
+# Vnosa StoritevSouporabe za Elektro energijo zato tu (še) ni.
 
 
 def preveri_souporabo(storitev: StoritevSouporabe, udelezenci: Dict[str, "Gospodinjstvo"],

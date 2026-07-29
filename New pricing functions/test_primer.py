@@ -27,6 +27,8 @@ testi = [
     (s_pv,    "GENI_NETMETERING",      "nova shema na net-metering paketu"),
     (skup,    "GENI_SAMO_DINAMICNI",   "skupnostna na individualnem ceniku"),
     (skup,    "BISOL_SAMO_DINAMICNA",  "skupnostna na dovoljenem ceniku (OK)"),
+    (s_pv,    "ELEN_ZANESLJIVA",       "PV pri dobavitelju brez samooskrbe"),
+    (brez_pv, "ELEN_DINAMICNA",        "brez PV na dinamičnem ELEN (OK)"),
 ]
 for g, pid, opis in testi:
     try:
@@ -66,13 +68,14 @@ print("\n" + "=" * 70); print("3. PRIMERJAVA PAKETOV — julij 2026, brez PV"); 
 podatki = profil(2026, 7)
 for pid in ["GENI_REDNI", "GENI_AKTIVNI", "GENI_DINAMICNI",
             "BISOL_FIKSNI99", "BISOL_DINAMICNI", "BISOL_DINAMICNI_PLUS",
-            "PETROL_REDNI", "PETROL_FIKS2026"]:
+            "PETROL_REDNI", "PETROL_FIKS2026",
+            "ELEN_ZANESLJIVA", "ELEN_FIKSNI", "ELEN_DINAMICNA"]:
     p = PAKETI[pid]
     o = MesecniObracun(2026, 7, brez_pv, p)
     for ts, kwh, _, sipx in podatki:
         o.dodaj(dobava(sipx, kwh, ts, INT, paket=p, pravila=o.pravila))
     r = o.zakljuci()
-    print(f"  {p.dobavitelj:16}{p.ime[:34]:36}{r.za_placilo:8.2f} EUR "
+    print(f"  {p.dobavitelj:17}{p.ime[:34]:36}{r.za_placilo:8.2f} EUR "
           f"(fiks {r.fiksni_del_z_ddv:5.2f} / spr {r.spremenljivi_del_z_ddv:6.2f})")
 
 # ------------------------------------------------------------ 4. SAMOOSKRBA

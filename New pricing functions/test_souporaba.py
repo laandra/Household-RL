@@ -65,6 +65,10 @@ scenariji = [
     ("GENI_SOUPORABA",     "GENI_SAMO_AKTIVNI","GENI_AKTIVNI"),
     ("PETROL_SOUPORABA",   "PETROL_SAMOOSKRBA","PETROL_REDNI"),
     ("BREZ_ORGANIZATORJA", "BISOL_SAMO_DINAMICNA", "BISOL_DINAMICNI"),
+    # Elektro energija samooskrbe ne ponuja -> lahko je le PREJEMNIK, oddajnik
+    # pa je pri drugem dobavitelju (souporaba med dobavitelji je dovoljena).
+    ("BREZ_ORGANIZATORJA", "GENI_SAMO_REDNI",  "ELEN_ZANESLJIVA"),
+    ("BREZ_ORGANIZATORJA", "BISOL_SAMO_DINAMICNA", "ELEN_DINAMICNA"),
 ]
 print(f"  {'organizator':<20}{'paket oddajnika':<26}{'oddajnik':>10}{'prejemnik':>11}{'skupaj':>9}")
 print("  " + "-"*76)
