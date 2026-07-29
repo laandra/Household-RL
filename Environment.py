@@ -11,6 +11,7 @@ from Basic_Functions import (
 )
 
 from Pricing_Functions import (
+    PRIVZETO_REFERENCNO_LETO,
     calculate_interval_price,
     resolve_block_for_datetime,
     resolve_reset_window_id,
@@ -143,13 +144,20 @@ class HouseholdEnvironment(gym.Env):
             raise ValueError("pricing_scheme must be 'si_dobava', 'si_samooskrba', or 'aus_base'")
         self.pricing_compare_all = bool(pricing_compare_all)
         self.pricing_include_raw = bool(pricing_include_raw)
-        self.pricing_options = pricing_options
-        if self.pricing_options not in (None, {}, {"pricing_mode": "dinamicni", "buyback_mode": "dinamicni"}):
-            raise ValueError("pricing_options must be None, empty dict, or {'pricing_mode': 'dinamicni', 'buyback_mode': 'dinamicni'}")
-        
-        self.pricing_reference_year = None if pricing_reference_year is None else int(pricing_reference_year)
-        if self.pricing_reference_year is not None:
-            self.pricing_options["pricing_reference_year"] = self.pricing_reference_year
+        # Copy: pricing_options has a mutable default, and the reference year is
+        # written into it below -- mutating it in place would leak into every
+        # later environment built with the default.
+        self.pricing_options = dict(pricing_options or {})
+
+        # Ausgrid timestamps (2010-2013) have no published SI tariff rates, so
+        # leaving this unset would make pricing fall back to the 2026 regime
+        # anyway (see Pricing_Functions._resolve_pravila); pin it explicitly so
+        # the RL environment and the MILP benchmark agree on the same year.
+        self.pricing_reference_year = (
+            PRIVZETO_REFERENCNO_LETO if pricing_reference_year is None
+            else int(pricing_reference_year)
+        )
+        self.pricing_options["pricing_reference_year"] = self.pricing_reference_year
 
         self.data_length = len(self.dataset)
         if self.data_length == 0:

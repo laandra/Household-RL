@@ -39,7 +39,7 @@ if str(_THIS_DIR) not in sys.path:
 from si_cas import bloki_v_mesecu, casovni_blok, je_visja_sezona, v_lokalni_cas
 from si_obracun import Pravila, dobava, samooskrba
 from si_paketi import PAKETI, TipCene, TipOdkupa
-from si_tarife import DDV, ove_spte_eur_kw
+from si_tarife import DDV, PRIVZETO_REFERENCNO_LETO, ima_tarifne_postavke, ove_spte_eur_kw
 from si_konica import marginal_excess_charge_eur, reset_window_id, update_running_peak
 
 # -----------------------------------------------------------------------------
@@ -73,7 +73,7 @@ def list_pricing_schemes(include_skipped: bool = False) -> Tuple[str, ...]:
 # Legacy Australian pricing (unchanged behavior)
 # -----------------------------------------------------------------------------
 def Aus_Base(
-    smp_market_price_mwh: float,
+    smp_market_price_kwh: float,
     total_consumed_kwh: float,
     utc_date: datetime.datetime,
     interval_minutes: float = 30,
@@ -94,7 +94,8 @@ def Aus_Base(
     )
     constant_cost_inc_gst = constant_cost_ex_gst * (1 + GST_RATE)
 
-    spot_price_kwh = smp_market_price_mwh / 0.615
+    #Converted from EUR to AUD using 0.615 conversion rate
+    spot_price_kwh = smp_market_price_kwh / 0.615
 
     MLF = 0.995
     DLF = 1.045
@@ -149,16 +150,33 @@ def _resolve_pravila(
     pricing_reference_year: Optional[int],
     warnings: List[str],
 ) -> Pravila:
+    """Regulatory regime for one interval.
+
+    Datasets used here (Ausgrid 2010-2013) carry timestamps for which no SI
+    tariff act exists, so both branches fall back to the default reference
+    year (2026) instead of raising -- see `si_obracun.Pravila.za_leto` /
+    `Pravila.privzeta`.
+    """
     if pravila is not None:
         return pravila
     if pricing_reference_year is not None:
         year = int(pricing_reference_year)
-        if year >= 2027:
-            return Pravila.od_2027()
-        if year == 2026:
-            return Pravila.od_2026()
-        return Pravila.ob_datumu(datetime.date(year, 1, 1))
-    return Pravila.ob_datumu(v_lokalni_cas(utc_date).date())
+        if year < 2027 and year != PRIVZETO_REFERENCNO_LETO and not ima_tarifne_postavke(
+            datetime.date(year, 1, 1)
+        ):
+            warnings.append(
+                f"pricing_reference_year={year} has no published SI tariff rates; "
+                f"pricing falls back to the {PRIVZETO_REFERENCNO_LETO} regime."
+            )
+        return Pravila.za_leto(year)
+    data_date = v_lokalni_cas(utc_date).date()
+    if not ima_tarifne_postavke(data_date):
+        warnings.append(
+            f"No SI tariff rates published for the data timestamp {data_date}; "
+            f"pricing falls back to the {PRIVZETO_REFERENCNO_LETO} regime. Set "
+            f"pricing_reference_year explicitly to silence this."
+        )
+    return Pravila.privzeta(data_date)
 
 
 def _resolve_dogovorjena_moc(
@@ -505,7 +523,7 @@ def _resolve_single_scheme(
 # Public dispatcher
 # -----------------------------------------------------------------------------
 def calculate_interval_price(
-    smp_market_price_mwh: float,
+    smp_market_price_kwh: float,
     total_consumed_kwh: float,
     utc_date: datetime.datetime,
     interval_minutes: float = 30,
@@ -550,6 +568,7 @@ def calculate_interval_price(
       `energy_component_eur + power_component_eur`, both also returned
       individually for isolated use).
     """
+    smp_market_price_mwh = float(smp_market_price_kwh) * 1000.0
     warnings: List[str] = []
     resolved_pravila = _resolve_pravila(utc_date, pravila, pricing_reference_year, warnings)
     resolved_meritve = _resolve_meritve_15min(interval_minutes, meritve_15min, warnings)

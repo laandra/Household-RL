@@ -52,9 +52,11 @@ from si_tarife import (
     DDV,
     OMREZNINA_2026,
     OPERATER_TRGA_EUR_KWH,
+    PRIVZETO_REFERENCNO_LETO,
     Omreznina,
     TROSARINA_EUR_KWH,
     URE_EUR_KWH,
+    ima_tarifne_postavke,
     omreznina_za_datum,
     ove_spte_eur_kw,
 )
@@ -74,6 +76,13 @@ class Pravila:
         Pravila.veljavna()                   # režim, ki velja danes
         Pravila.od_2027()                    # režim od 1. 1. 2027
         Pravila.ob_datumu(date(2025, 6, 1))  # režim, ki je veljal takrat
+        Pravila.za_leto(2026)                # režim danega referenčnega leta
+        Pravila.privzeta(date(2012, 6, 30))  # režim datuma podatkov ali 2026
+
+    `ob_datumu` / `veljavna` sta stroga: za datum brez objavljenih tarifnih
+    postavk sprožita ValueError. `za_leto` in `privzeta` v tem primeru padeta
+    nazaj na `PRIVZETO_REFERENCNO_LETO` (2026) — to je pot, ki jo uporabljata
+    RL okolje in MILP nad starimi dataseti.
 
     `preslikaj_v_leto` opcijsko preslika koledar podatkov v referenčno leto,
     da se ujameta razpored praznikov in delovnih dni (npr. 2015 -> 2026).
@@ -105,6 +114,32 @@ class Pravila:
         return cls(omreznina=OMREZNINA_2026, razpored="2024",
                    dajatve_datum=dt.date(2026, 1, 1),
                    oznaka="režim od 2026 (trenutno veljavni)", **kw)
+
+    @classmethod
+    def za_leto(cls, leto: int, **kw) -> "Pravila":
+        """Režim za dano referenčno leto.
+
+        Leta brez objavljenih tarifnih postavk (npr. 2012 iz Ausgrid podatkov)
+        se obračunajo po privzetem letu 2026 — sicer bi `omreznina_za_datum`
+        sprožila ValueError.
+        """
+        leto = int(leto)
+        if leto >= 2027:
+            return cls.od_2027(**kw)
+        if leto == PRIVZETO_REFERENCNO_LETO:
+            return cls.od_2026(**kw)
+        d = dt.date(leto, 1, 1)
+        if ima_tarifne_postavke(d):
+            return cls.ob_datumu(d, **kw)
+        return cls.od_2026(**kw)
+
+    @classmethod
+    def privzeta(cls, d: Optional[dt.date] = None, **kw) -> "Pravila":
+        """Režim, ki je veljal na datum podatkov, s padcem nazaj na privzeto
+        leto 2026, kadar za ta datum ni objavljenih tarifnih postavk."""
+        if d is not None and ima_tarifne_postavke(d):
+            return cls.ob_datumu(d, **kw)
+        return cls.od_2026(**kw)
 
     @classmethod
     def od_2027(cls, **kw) -> "Pravila":
@@ -199,7 +234,7 @@ def dobava(market_price_mwh: float, total_consumed_kwh: float,
     Prevzem iz omrežja brez lastne proizvodnje. Pokriva enotarifne, dvotarifne,
     4-tarifne (aktivne) in dinamične pakete — razlika je le v paket.tip_cene.
     """
-    pravila = pravila or Pravila.ob_datumu(v_lokalni_cas(utc_date).date())
+    pravila = pravila or Pravila.privzeta(v_lokalni_cas(utc_date).date())
     ctx = _kontekst(utc_date, interval_minutes, pravila)
     cena = _cena_prevzema(paket, ctx, market_price_mwh, meritve_15min)
     post = {"energija": total_consumed_kwh * cena,
@@ -219,7 +254,7 @@ def samooskrba(market_price_mwh: float, total_consumed_kwh: float,
       neto > 0 -> prevzem: energija + omrežnina + dajatve + DDV
       neto < 0 -> oddaja:  dobropis po ceni oddaje, BREZ omrežnine in BREZ DDV
     """
-    pravila = pravila or Pravila.ob_datumu(v_lokalni_cas(utc_date).date())
+    pravila = pravila or Pravila.privzeta(v_lokalni_cas(utc_date).date())
     ctx = _kontekst(utc_date, interval_minutes, pravila)
 
     neto = total_consumed_kwh - total_produced_kwh
@@ -259,7 +294,7 @@ def skupnost(market_price_mwh: float, total_consumed_kwh: float,
     (povprečje cene prevzema in oddaje) po Markotić et al., Energies 2026,
     19(8), 1831, https://doi.org/10.3390/en19081831
     """
-    pravila = pravila or Pravila.ob_datumu(v_lokalni_cas(utc_date).date())
+    pravila = pravila or Pravila.privzeta(v_lokalni_cas(utc_date).date())
     ctx = _kontekst(utc_date, interval_minutes, pravila)
     om, blok = pravila.omreznina, ctx["blok"]
 
@@ -385,7 +420,7 @@ class MesecniObracun:
                  strogo: bool = True):
         self.leto, self.mesec = leto, mesec
         self.g, self.paket = gospodinjstvo, paket
-        self.pravila = pravila or Pravila.ob_datumu(dt.date(leto, mesec, 1))
+        self.pravila = pravila or Pravila.privzeta(dt.date(leto, mesec, 1))
         self.ove_spte_blok = ove_spte_blok
         self.obracunaj_presezno_moc = obracunaj_presezno_moc
 
@@ -595,7 +630,7 @@ def souporaba_oddajnik(
     se plača le dejansko izrabljena količina, nastavi na False in podaj
     `dejansko_izrabljeno_kwh`.
     """
-    pravila = pravila or Pravila.ob_datumu(v_lokalni_cas(utc_date).date())
+    pravila = pravila or Pravila.privzeta(v_lokalni_cas(utc_date).date())
     ctx = _kontekst(utc_date, interval_minutes, pravila)
 
     neto = total_consumed_kwh - total_produced_kwh
@@ -643,7 +678,7 @@ def souporaba_prejemnik(
     Omrežnina, trošarina in prispevki ostanejo na CELOTNEM G.
     Neizrabljeni del prejete energije propade (ni dobropisa, ni prenosa).
     """
-    pravila = pravila or Pravila.ob_datumu(v_lokalni_cas(utc_date).date())
+    pravila = pravila or Pravila.privzeta(v_lokalni_cas(utc_date).date())
     ctx = _kontekst(utc_date, interval_minutes, pravila)
 
     prevzem = max(total_consumed_kwh - lastna_proizvodnja_kwh, 0.0)
